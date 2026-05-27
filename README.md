@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SmartHR — Application RH & Payroll
 
 Application complète de gestion des ressources humaines et de paie multi-entreprise.
@@ -69,3 +70,6 @@ npm start
 - **Phase 2** ✅ Paie · Congés
 - **Phase 3** 🔜 Rapports avancés · GPEC · Documents RH
 - **Phase 4** 🔜 Automatisation · Mobile
+=======
+# SMARTHR
+>>>>>>> 06e166c7af74f900e2d84065bf33ec31520b3fd0
