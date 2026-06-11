@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "SmartHR & Payroll - Backend API (NestJS)",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
     "start": "node dist/main",
-    "start:dev": "npx ts-node src/main.ts",
+    "start:dev": "node node_modules/ts-node/dist/bin.js src/main.ts",
     "start:prod": "node dist/main"
   },
   "dependencies": {

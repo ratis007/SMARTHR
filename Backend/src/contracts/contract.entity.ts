@@ -16,16 +16,16 @@ export class Contract {
   @JoinColumn({ name: 'employee_id' })
   employee: Employee;
 
-  @Column()
+  @Column({ name: 'employee_id' })
   employeeId: number;
 
   @Column({ type: 'enum', enum: ContractType })
   type: ContractType;
 
-  @Column({ type: 'date' })
+  @Column({ name: 'start_date', type: 'date' })
   startDate: string;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ name: 'end_date', type: 'date', nullable: true })
   endDate: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
@@ -37,9 +37,9 @@ export class Contract {
   @Column({ nullable: true })
   notes: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

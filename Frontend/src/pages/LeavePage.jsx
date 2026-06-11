@@ -94,7 +94,16 @@ export default function LeavePage() {
   const pendingCount = leaves.filter((l) => l.status === 'pending').length;
 
   const handleCreate = async (data) => {
-    try { await leaveApi.create(data); toast.success('Demande soumise'); setModal(false); load(); }
+    try {
+      const { data: created } = await leaveApi.create(data);
+      const employee = employees.find((e) => Number(e.id) === Number(data.employeeId));
+      const leave = { status: 'pending', ...created, employee: created.employee ?? employee };
+      setLeaves((current) => [leave, ...current.filter((l) => l.id !== leave.id)]);
+      setFilter(leave.status ?? 'pending');
+      toast.success('Demande soumise');
+      setModal(false);
+      load();
+    }
     catch (err) { toast.error(err.response?.data?.message || 'Erreur lors de la soumission'); }
   };
   const handleApprove = async (id) => {

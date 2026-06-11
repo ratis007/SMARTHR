@@ -1,21 +1,19 @@
-<<<<<<< HEAD
-# SmartHR — Application RH & Payroll
+# SmartHR - Application RH & Payroll
 
-Application complète de gestion des ressources humaines et de paie multi-entreprise.
+Application complete de gestion des ressources humaines et de paie multi-entreprise.
 
 ## Stack technique
 
 - **Backend** : NestJS (Node.js) + TypeORM
 - **Frontend** : React + Tailwind CSS + Vite
 - **Desktop** : Electron
-- **Base de données** : PostgreSQL
+- **Base de donnees** : PostgreSQL
 
-## Démarrage rapide
+## Demarrage rapide
 
-### 1. Base de données
+### 1. Base de donnees
 
 ```bash
-# Créer la base de données PostgreSQL
 createdb smarthr_db
 psql smarthr_db < database/schema.sql
 ```
@@ -25,12 +23,13 @@ psql smarthr_db < database/schema.sql
 ```bash
 cd Backend
 cp .env.example .env
-# Éditer .env avec vos paramètres DB
+# Modifier .env avec vos parametres PostgreSQL
 npm install
 npm run start:dev
-# API disponible sur http://localhost:3000/api
-# Swagger docs : http://localhost:3000/api/docs
 ```
+
+API : http://localhost:3000/api
+Swagger : http://localhost:3000/api/docs
 
 ### 3. Frontend
 
@@ -38,8 +37,9 @@ npm run start:dev
 cd Frontend
 npm install
 npm run dev
-# Interface sur http://localhost:5173
 ```
+
+Interface : http://localhost:5173
 
 ### 4. Desktop (optionnel)
 
@@ -49,27 +49,17 @@ npm install
 npm start
 ```
 
-## Modules implémentés
+## Modules implementes
 
 | Module | Statut |
 |--------|--------|
-| Authentification JWT | ✅ |
-| Gestion Entreprises | ✅ |
-| Gestion Employés | ✅ |
-| Contrats | ✅ |
-| Paie (CNSS, IPR, INPP, ONEM) | ✅ |
-| Congés | ✅ |
-| Rapports & Dashboard | ✅ |
-| Paramètres | ✅ |
-| GPEC, Discipline, Résiliation | 🔜 Phase 3 |
-| Mobile (Flutter/React Native) | 🔜 Phase 4 |
-
-## Roadmap
-
-- **Phase 1** ✅ Auth · Entreprises · Employés
-- **Phase 2** ✅ Paie · Congés
-- **Phase 3** 🔜 Rapports avancés · GPEC · Documents RH
-- **Phase 4** 🔜 Automatisation · Mobile
-=======
-# SMARTHR
->>>>>>> 06e166c7af74f900e2d84065bf33ec31520b3fd0
+| Authentification JWT | OK |
+| Gestion entreprises | OK |
+| Gestion employes | OK |
+| Contrats | OK |
+| Paie (CNSS, IPR, INPP, ONEM) | OK |
+| Conges | OK |
+| Rapports et dashboard | OK |
+| Parametres | OK |
+| GPEC, discipline, resiliation | Phase 3 |
+| Mobile | Phase 4 |

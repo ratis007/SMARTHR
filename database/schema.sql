@@ -218,11 +218,12 @@ CREATE TABLE IF NOT EXISTS leave_types (
 CREATE TABLE IF NOT EXISTS leave_requests (
   id SERIAL PRIMARY KEY,
   employee_id INT REFERENCES employees(id) ON DELETE CASCADE,
-  type VARCHAR(20) CHECK (type IN ('annual', 'sick', 'maternity', 'unpaid', 'other')),
+  type VARCHAR(20) CHECK (type IN ('annual', 'sick', 'maternity', 'paternity', 'unpaid', 'other')),
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   reason TEXT,
   status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  days INT,
   approved_by INT REFERENCES users(id),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()

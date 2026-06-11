@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payroll, PayrollStatus } from './payroll.entity';
@@ -45,9 +45,7 @@ export class PayrollService {
       where: { employeeId: dto.employeeId, month: dto.month, year: dto.year },
     });
     if (existing) {
-      throw new ConflictException(
-        `Une fiche de paie existe déjà pour ${employee.lastName} ${employee.firstName} en ${dto.month}/${dto.year}`
-      );
+      return this.findOne(existing.id);
     }
 
     const base = dto.baseSalary ?? Number(employee.baseSalary);
@@ -92,7 +90,7 @@ export class PayrollService {
     payroll.details = await detailRepo.save(
       details.map(d => detailRepo.create({ ...d, payrollId: payroll.id }))
     );
-    return payroll;
+    return this.findOne(payroll.id);
   }
 
   async validate(id: number) {

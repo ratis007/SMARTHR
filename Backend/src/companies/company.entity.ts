@@ -15,10 +15,10 @@ export class Company {
   @Column({ nullable: true })
   rccm: string; // Registre du Commerce
 
-  @Column({ nullable: true })
+  @Column({ name: 'id_nat', nullable: true })
   idNat: string; // Identification Nationale
 
-  @Column({ nullable: true })
+  @Column({ name: 'tax_number', nullable: true })
   taxNumber: string; // Numéro fiscal
 
   @Column({ nullable: true })
@@ -33,15 +33,15 @@ export class Company {
   @Column({ nullable: true })
   logo: string;
 
-  @Column({ default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
   @OneToMany(() => Employee, (emp) => emp.company)
   employees: Employee[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

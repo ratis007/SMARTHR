@@ -16,16 +16,16 @@ export class Employee {
   @Column({ unique: true })
   matricule: string;
 
-  @Column()
+  @Column({ name: 'last_name' })
   lastName: string; // Nom
 
-  @Column({ nullable: true })
+  @Column({ name: 'middle_name', nullable: true })
   middleName: string; // Postnom
 
-  @Column()
+  @Column({ name: 'first_name' })
   firstName: string; // Prénom
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ name: 'birth_date', type: 'date', nullable: true })
   birthDate: string;
 
   @Column({ nullable: true })
@@ -49,7 +49,7 @@ export class Employee {
   @Column({ nullable: true })
   position: string;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  @Column({ name: 'base_salary', type: 'decimal', precision: 15, scale: 2, default: 0 })
   baseSalary: number;
 
   @Column({ type: 'enum', enum: EmployeeStatus, default: EmployeeStatus.ACTIVE })
@@ -59,15 +59,15 @@ export class Employee {
   @JoinColumn({ name: 'company_id' })
   company: Company;
 
-  @Column({ nullable: true })
+  @Column({ name: 'company_id', nullable: true })
   companyId: number;
 
   @OneToMany(() => Contract, (c) => c.employee)
   contracts: Contract[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

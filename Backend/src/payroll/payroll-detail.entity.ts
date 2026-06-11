@@ -14,7 +14,7 @@ export class PayrollDetail {
   @JoinColumn({ name: 'payroll_id' })
   payroll: Payroll;
 
-  @Column()
+  @Column({ name: 'payroll_id' })
   payrollId: number;
 
   @Column()

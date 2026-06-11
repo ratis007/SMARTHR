@@ -86,7 +86,18 @@ export default function CompanyLeave() {
   const pendingCount = leaves.filter(l => l.status === 'pending').length;
   const getTypeLabel = (v) => LEAVE_TYPES.find(t => t.value === v)?.label ?? v;
 
-  const handleCreate  = async (data) => { try { await leaveApi.create(data);  toast.success('Demande soumise'); setModal(false); load(); } catch (err) { toast.error(err.response?.data?.message || 'Erreur'); } };
+  const handleCreate  = async (data) => {
+    try {
+      const { data: created } = await leaveApi.create(data);
+      const employee = employees.find((e) => Number(e.id) === Number(data.employeeId));
+      const leave = { status: 'pending', ...created, employee: created.employee ?? employee };
+      setLeaves((current) => [leave, ...current.filter((l) => l.id !== leave.id)]);
+      setFilter(leave.status ?? 'pending');
+      toast.success('Demande soumise');
+      setModal(false);
+      load();
+    } catch (err) { toast.error(err.response?.data?.message || 'Erreur'); }
+  };
   const handleApprove = async (id)   => { try { await leaveApi.approve(id);   toast.success('Congé approuvé'); load(); } catch (err) { toast.error(err.response?.data?.message || 'Erreur'); } };
   const handleReject  = async (id)   => { try { await leaveApi.reject(id);    toast.success('Congé refusé');   load(); } catch (err) { toast.error(err.response?.data?.message || 'Erreur'); } };
 

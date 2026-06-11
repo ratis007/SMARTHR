@@ -16,16 +16,16 @@ export class Leave {
   @JoinColumn({ name: 'employee_id' })
   employee: Employee;
 
-  @Column()
+  @Column({ name: 'employee_id' })
   employeeId: number;
 
   @Column({ type: 'enum', enum: LeaveType })
   type: LeaveType;
 
-  @Column({ type: 'date' })
+  @Column({ name: 'start_date', type: 'date' })
   startDate: string;
 
-  @Column({ type: 'date' })
+  @Column({ name: 'end_date', type: 'date' })
   endDate: string;
 
   @Column({ nullable: true })
@@ -37,12 +37,12 @@ export class Leave {
   @Column({ nullable: true })
   days: number;
 
-  @Column({ nullable: true })
+  @Column({ name: 'approved_by', nullable: true })
   approvedBy: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

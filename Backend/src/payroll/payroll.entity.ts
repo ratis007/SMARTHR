@@ -17,7 +17,7 @@ export class Payroll {
   @JoinColumn({ name: 'employee_id' })
   employee: Employee;
 
-  @Column()
+  @Column({ name: 'employee_id' })
   employeeId: number;
 
   @Column()
@@ -26,16 +26,16 @@ export class Payroll {
   @Column()
   year: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  @Column({ name: 'base_salary', type: 'decimal', precision: 15, scale: 2, default: 0 })
   baseSalary: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  @Column({ name: 'total_allowances', type: 'decimal', precision: 15, scale: 2, default: 0 })
   totalAllowances: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  @Column({ name: 'total_deductions', type: 'decimal', precision: 15, scale: 2, default: 0 })
   totalDeductions: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  @Column({ name: 'net_salary', type: 'decimal', precision: 15, scale: 2, default: 0 })
   netSalary: number;
 
   @Column({ type: 'enum', enum: PayrollStatus, default: PayrollStatus.DRAFT })
@@ -44,9 +44,9 @@ export class Payroll {
   @OneToMany(() => PayrollDetail, (d) => d.payroll, { cascade: true })
   details: PayrollDetail[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

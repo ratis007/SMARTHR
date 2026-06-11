@@ -65,7 +65,16 @@ export default function CompanyContracts() {
   const filtered = filter === 'all' ? contracts : contracts.filter(c => c.type === filter);
 
   const handleCreate = async (data) => {
-    try { await contractsApi.create(data); toast.success('Contrat créé'); setModal(false); load(); }
+    try {
+      const { data: created } = await contractsApi.create(data);
+      const employee = employees.find((e) => Number(e.id) === Number(data.employeeId));
+      const contract = { status: 'active', ...created, employee: created.employee ?? employee };
+      setContracts((current) => [contract, ...current.filter((c) => c.id !== contract.id)]);
+      setFilter(contract.type ?? data.type ?? 'all');
+      toast.success('Contrat créé');
+      setModal(false);
+      load();
+    }
     catch (err) { toast.error(err.response?.data?.message || 'Erreur lors de la création'); }
   };
 
