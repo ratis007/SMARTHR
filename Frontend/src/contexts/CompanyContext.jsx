@@ -36,7 +36,7 @@ export function CompanyProvider({ children }) {
   }, [loadCompany]);
 
   return (
-    <CompanyContext.Provider value={{ company, companyId: companyId ? Number(companyId) : null, loading }}>
+    <CompanyContext.Provider value={{ company, companyId: companyId ? Number(companyId) : null, loading, reloadCompany: loadCompany }}>
       {children}
     </CompanyContext.Provider>
   );

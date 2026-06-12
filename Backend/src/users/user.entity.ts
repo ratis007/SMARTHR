@@ -24,6 +24,9 @@ export class User {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
+  @Column({ default: 'active' })
+  status: string;
+
   @Column({ name: 'last_login', nullable: true })
   lastLogin: Date;
 

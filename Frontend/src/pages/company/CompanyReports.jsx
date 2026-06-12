@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCurrentCompany } from '../../contexts/CompanyContext';
-import { reportsApi } from '../../services/api';
+import { reportsApi, platformSettingsApi } from '../../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
@@ -17,6 +17,7 @@ export default function CompanyReports() {
   const [year, setYear] = useState(now.getFullYear());
   const [payrollData, setPayrollData] = useState([]);
   const [leaveData, setLeaveData] = useState([]);
+  const [currency, setCurrency] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,8 +26,9 @@ export default function CompanyReports() {
     Promise.all([
       reportsApi.getPayroll(month, year, companyId),
       reportsApi.getLeave(year, companyId),
+      platformSettingsApi.getCurrency(companyId),
     ])
-      .then(([p, l]) => { setPayrollData(p.data); setLeaveData(l.data); })
+      .then(([p, l, c]) => { setPayrollData(p.data); setLeaveData(l.data); setCurrency(c.data); })
       .finally(() => setLoading(false));
   }, [month, year, companyId]);
 
@@ -54,16 +56,16 @@ export default function CompanyReports() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card border-indigo-100 bg-gradient-to-br from-indigo-50 to-white">
           <p className="text-xs font-bold text-indigo-500 uppercase tracking-wide">Net total</p>
-          <p className="text-2xl font-extrabold text-indigo-700 mt-1">{totalNet.toLocaleString('fr-FR')} CDF</p>
+          <p className="text-2xl font-extrabold text-indigo-700 mt-1">{formatDual(totalNet, currency)}</p>
           <p className="text-xs font-medium text-indigo-400 mt-0.5">{payrollData.length} employé(s)</p>
         </div>
         <div className="card border-emerald-100 bg-gradient-to-br from-emerald-50 to-white">
           <p className="text-xs font-bold text-emerald-500 uppercase tracking-wide">Brut total</p>
-          <p className="text-2xl font-extrabold text-emerald-700 mt-1">{totalBrut.toLocaleString('fr-FR')} CDF</p>
+          <p className="text-2xl font-extrabold text-emerald-700 mt-1">{formatDual(totalBrut, currency)}</p>
         </div>
         <div className="card border-red-100 bg-gradient-to-br from-red-50 to-white">
           <p className="text-xs font-bold text-red-400 uppercase tracking-wide">Déductions totales</p>
-          <p className="text-2xl font-extrabold text-red-600 mt-1">{totalDed.toLocaleString('fr-FR')} CDF</p>
+          <p className="text-2xl font-extrabold text-red-600 mt-1">{formatDual(totalDed, currency)}</p>
           <p className="text-xs font-medium text-red-400 mt-0.5">CNSS + IPR + INPP + ONEM</p>
         </div>
       </div>
@@ -82,7 +84,7 @@ export default function CompanyReports() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey={p => p.employee?.lastName?.slice(0, 8) ?? ''} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={v => [`${Number(v).toLocaleString('fr-FR')} CDF`]} />
+                  <Tooltip formatter={v => [formatDual(v, currency)]} />
                   <Bar dataKey="netSalary" fill="#6366f1" radius={[6,6,0,0]} name="Net à payer" />
                 </BarChart>
               </ResponsiveContainer>
@@ -121,10 +123,10 @@ export default function CompanyReports() {
                 <tr key={p.id} className="tr-hover">
                   <td className="td"><span className="font-mono text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">{p.employee?.matricule}</span></td>
                   <td className="td font-medium text-gray-900">{p.employee?.lastName} {p.employee?.firstName}</td>
-                  <td className="td">{Number(p.baseSalary).toLocaleString('fr-FR')}</td>
-                  <td className="td text-emerald-600 font-semibold">+{Number(p.totalAllowances).toLocaleString('fr-FR')}</td>
-                  <td className="td text-red-500 font-semibold">-{Number(p.totalDeductions).toLocaleString('fr-FR')}</td>
-                  <td className="td font-bold text-gray-900">{Number(p.netSalary).toLocaleString('fr-FR')} CDF</td>
+                  <td className="td">{formatDual(p.baseSalary, currency)}</td>
+                  <td className="td text-emerald-600 font-semibold">+{formatDual(p.totalAllowances, currency)}</td>
+                  <td className="td text-red-500 font-semibold">-{formatDual(p.totalDeductions, currency)}</td>
+                  <td className="td font-bold text-gray-900">{formatDual(p.netSalary, currency)}</td>
                 </tr>
               ))}
             </tbody>
@@ -133,4 +135,11 @@ export default function CompanyReports() {
       )}
     </div>
   );
+}
+
+function formatDual(value, currency) {
+  const cdf = Number(value || 0);
+  const rate = Number(currency?.usdToCdfRate || 2850);
+  const usd = cdf / rate;
+  return `${Math.round(cdf).toLocaleString('fr-FR')} FC / ${usd.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 }

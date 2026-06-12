@@ -33,6 +33,9 @@ export class EmployeesController {
   @Get('stats')
   getStats() { return this.service.getStats(); }
 
+  @Get(':id/dossier')
+  getDossier(@Param('id') id: string) { return this.service.getDossier(+id); }
+
   @Get(':id')
   findOne(@Param('id') id: string) { return this.service.findOne(+id); }
 

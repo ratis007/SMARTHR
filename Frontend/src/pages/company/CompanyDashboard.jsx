@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCurrentCompany } from '../../contexts/CompanyContext';
-import { reportsApi } from '../../services/api';
+import { reportsApi, platformSettingsApi } from '../../services/api';
 import StatCard from '../../components/StatCard';
 import {
   UsersIcon, BanknotesIcon, CalendarDaysIcon,
@@ -33,6 +33,7 @@ export default function CompanyDashboard() {
 
   const { company, loading: companyLoading } = useCurrentCompany();
   const [stats, setStats] = useState(null);
+  const [currency, setCurrency] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
@@ -54,6 +55,13 @@ export default function CompanyDashboard() {
       .finally(() => setStatsLoading(false));
 
   }, [companyId, reportsApi]); // dépend de companyId et reportsApi
+
+  useEffect(() => {
+    if (!companyId) return;
+    platformSettingsApi.getCurrency(companyId)
+      .then(({ data }) => setCurrency(data))
+      .catch(() => setCurrency(null));
+  }, [companyId]);
 
   const now = new Date();
   const chartData = stats?.evolution ?? [];
@@ -100,8 +108,8 @@ export default function CompanyDashboard() {
         <StatCard
           title="Masse Salariale"
           value={stats?.masseSalariale
-            ? `${Number(stats.masseSalariale).toLocaleString('fr-FR')} CDF`
-            : '0 CDF'}
+            ? formatDual(stats.masseSalariale, currency)
+            : formatDual(0, currency)}
           icon={BanknotesIcon}
           color="purple"
           subtitle="Ce mois"
@@ -186,4 +194,11 @@ export default function CompanyDashboard() {
 
     </div>
   );
+}
+
+function formatDual(value, currency) {
+  const cdf = Number(value || 0);
+  const rate = Number(currency?.usdToCdfRate || 2850);
+  const usd = cdf / rate;
+  return `${Math.round(cdf).toLocaleString('fr-FR')} FC / ${usd.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 }

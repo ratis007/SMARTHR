@@ -6,9 +6,10 @@ import { User } from './user.entity';
 import { Role } from './role.entity';
 import { Permission } from './permission.entity';
 import { SeedService } from './seed.service';
+import { AuditLog } from './audit-log.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Role, Permission])],
+  imports: [TypeOrmModule.forFeature([User, Role, Permission, AuditLog])],
   providers: [UsersService, SeedService],
   controllers: [UsersController],
   exports: [UsersService],

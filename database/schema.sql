@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
   first_name VARCHAR(100) NOT NULL,
   last_name VARCHAR(100) NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
+  status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
   last_login TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
@@ -77,6 +78,43 @@ CREATE TABLE IF NOT EXISTS sites (
   name VARCHAR(255) NOT NULL,
   address TEXT,
   created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS company_settings (
+  id SERIAL PRIMARY KEY,
+  company_id INT REFERENCES companies(id) ON DELETE CASCADE,
+  setting_type VARCHAR(50) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  code VARCHAR(100),
+  description TEXT,
+  config JSONB,
+  is_required BOOLEAN DEFAULT FALSE,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS currency_settings (
+  id SERIAL PRIMARY KEY,
+  company_id INT UNIQUE REFERENCES companies(id) ON DELETE CASCADE,
+  primary_currency VARCHAR(3) DEFAULT 'CDF' CHECK (primary_currency IN ('CDF', 'USD')),
+  secondary_currency VARCHAR(3) DEFAULT 'USD' CHECK (secondary_currency IN ('CDF', 'USD')),
+  usd_to_cdf_rate DECIMAL(15, 4) DEFAULT 2850,
+  rate_source VARCHAR(20) DEFAULT 'manual' CHECK (rate_source IN ('manual', 'api')),
+  rounding_mode VARCHAR(20) DEFAULT 'nearest' CHECK (rounding_mode IN ('nearest', 'up', 'down')),
+  rounding_precision INT DEFAULT 2,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS exchange_rate_history (
+  id SERIAL PRIMARY KEY,
+  company_id INT REFERENCES companies(id) ON DELETE CASCADE,
+  from_currency VARCHAR(3) NOT NULL,
+  to_currency VARCHAR(3) NOT NULL,
+  rate DECIMAL(15, 4) NOT NULL,
+  source VARCHAR(20) DEFAULT 'manual',
+  effective_at TIMESTAMP DEFAULT NOW()
 );
 
 -- ============================================================

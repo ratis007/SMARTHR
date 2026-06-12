@@ -13,6 +13,7 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
     if (!user) throw new UnauthorizedException('Identifiants invalides');
+    if (!user.isActive || user.status !== 'active') throw new UnauthorizedException('Compte inactif ou suspendu');
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new UnauthorizedException('Identifiants invalides');
     return user;
@@ -25,6 +26,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       roles: user.roles.map((r) => r.name),
+      permissions: Array.from(new Set(user.roles.flatMap((r) => (r.permissions || []).map((p) => p.name)))),
     };
     return {
       access_token: this.jwtService.sign(payload),
@@ -34,6 +36,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         roles: user.roles,
+        permissions: Array.from(new Set(user.roles.flatMap((r) => (r.permissions || []).map((p) => p.name)))),
       },
     };
   }

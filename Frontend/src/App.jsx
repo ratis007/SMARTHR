@@ -18,6 +18,7 @@ import LeavePage from './pages/LeavePage';
 import ContractsPage from './pages/ContractsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import UsersAdminPage from './pages/UsersAdminPage';
 
 // Pages scoped (espace entreprise)
 import CompanyDashboard from './pages/company/CompanyDashboard';
@@ -27,6 +28,7 @@ import CompanyPayroll from './pages/company/CompanyPayroll';
 import CompanyLeave from './pages/company/CompanyLeave';
 import CompanyReports from './pages/company/CompanyReports';
 import CompanySettings from './pages/company/CompanySettings';
+import CompanyEmployeeDetail from './pages/company/CompanyEmployeeDetail';
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -60,12 +62,16 @@ function AppRoutes() {
       <Route path="/settings" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
         <Route index element={<SettingsPage />} />
       </Route>
+      <Route path="/users" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+        <Route index element={<UsersAdminPage />} />
+      </Route>
 
       {/* Espace entreprise — toutes les données sont scoped par :companyId */}
       <Route path="/app/:companyId" element={<PrivateRoute><CompanyLayout /></PrivateRoute>}>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<CompanyDashboard />} />
         <Route path="employees" element={<CompanyEmployees />} />
+        <Route path="employees/:id" element={<CompanyEmployeeDetail />} />
         <Route path="contracts" element={<CompanyContracts />} />
         <Route path="payroll" element={<CompanyPayroll />} />
         <Route path="leave" element={<CompanyLeave />} />

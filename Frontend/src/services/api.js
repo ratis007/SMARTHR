@@ -61,6 +61,7 @@ export const employeesApi = {
   getPaginated: (params) =>
     api.get('/employees', { params }).then((res) => res.data),
   getOne: (id) => api.get(`/employees/${id}`),
+  getDossier: (id) => api.get(`/employees/${id}/dossier`),
   getStats: () => api.get('/employees/stats'),
   create: (data) => api.post('/employees', data),
   update: (id, data) => api.put(`/employees/${id}`, data),
@@ -99,4 +100,29 @@ export const reportsApi = {
   getDashboard: (companyId) => api.get('/reports/dashboard', { params: companyId ? { companyId } : {} }),
   getPayroll: (month, year, companyId) => api.get('/reports/payroll', { params: { month, year, ...(companyId ? { companyId } : {}) } }),
   getLeave: (year, companyId) => api.get('/reports/leave', { params: { year, ...(companyId ? { companyId } : {}) } }),
+};
+
+export const usersApi = {
+  getAll: () => api.get('/users'),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  setStatus: (id, status) => api.patch(`/users/${id}/status`, { status }),
+  resetPassword: (id, password) => api.post(`/users/${id}/reset-password`, { password }),
+  delete: (id) => api.delete(`/users/${id}`),
+  roles: () => api.get('/users/roles'),
+  updateRole: (id, data) => api.put(`/users/roles/${id}`, data),
+  permissions: () => api.get('/users/permissions'),
+  auditLogs: (userId) => api.get('/users/audit-logs', { params: userId ? { userId } : {} }),
+};
+
+export const platformSettingsApi = {
+  getCompanySettings: (companyId, type) => api.get(`/settings/companies/${companyId}`, { params: type ? { type } : {} }),
+  createCompanySetting: (companyId, data) => api.post(`/settings/companies/${companyId}`, data),
+  updateCompanySetting: (id, data) => api.put(`/settings/company-settings/${id}`, data),
+  deleteCompanySetting: (id) => api.delete(`/settings/company-settings/${id}`),
+  getCurrency: (companyId) => api.get(`/settings/companies/${companyId}/currency`),
+  updateCurrency: (companyId, data) => api.put(`/settings/companies/${companyId}/currency`, data),
+  fetchCurrencyRate: (companyId) => api.post(`/settings/companies/${companyId}/currency/fetch-rate`),
+  convert: (companyId, amount, from) => api.get(`/settings/companies/${companyId}/currency/convert`, { params: { amount, from } }),
+  rateHistory: (companyId) => api.get(`/settings/companies/${companyId}/currency/history`),
 };

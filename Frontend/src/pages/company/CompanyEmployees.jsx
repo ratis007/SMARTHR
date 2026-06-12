@@ -128,7 +128,7 @@ export default function CompanyEmployees() {
                     </td>
                     <td className="td"><span className={sc.cls}>{sc.label}</span></td>
                     <td className="td">
-                      <Link to={`/employees/${e.id}`} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium text-xs group">
+                      <Link to={`/app/${companyId}/employees/${e.id}`} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium text-xs group">
                         Voir <ChevronRightIcon className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                       </Link>
                     </td>

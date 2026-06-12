@@ -1,4 +1,4 @@
-import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -23,63 +23,75 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async seedPermissions() {
-    const perms = [
-      { name: 'users:read', module: 'users' }, { name: 'users:write', module: 'users' },
-      { name: 'employees:read', module: 'employees' }, { name: 'employees:write', module: 'employees' },
-      { name: 'payroll:read', module: 'payroll' }, { name: 'payroll:write', module: 'payroll' },
-      { name: 'leave:read', module: 'leave' }, { name: 'leave:write', module: 'leave' }, { name: 'leave:approve', module: 'leave' },
-      { name: 'companies:read', module: 'companies' }, { name: 'companies:write', module: 'companies' },
-      { name: 'reports:read', module: 'reports' },
-    ];
-    for (const p of perms) {
-      const exists = await this.permRepo.findOne({ where: { name: p.name } });
-      if (!exists) await this.permRepo.save(this.permRepo.create(p));
+    const modules = {
+      users: ['read', 'write'],
+      companies: ['read', 'write'],
+      employees: ['read', 'write'],
+      contracts: ['read', 'write'],
+      payroll: ['read', 'write'],
+      leave: ['read', 'write', 'approve'],
+      reports: ['read'],
+      settings: ['read', 'write'],
+      currency: ['read', 'write'],
+      audit: ['read'],
+    };
+    for (const [module, actions] of Object.entries(modules)) {
+      for (const action of actions) {
+        const name = `${module}:${action}`;
+        const exists = await this.permRepo.findOne({ where: { name } });
+        if (!exists) await this.permRepo.save(this.permRepo.create({ name, module }));
+      }
     }
   }
 
   private async seedRoles() {
     const allPerms = await this.permRepo.find();
-    const rolesData = [
-      { name: 'admin', description: 'Administrateur système', permNames: allPerms.map(p => p.name) },
-      { name: 'rh_manager', description: 'Responsable RH', permNames: ['employees:read','employees:write','leave:read','leave:write','leave:approve','contracts:read','reports:read'] },
-      { name: 'accountant', description: 'Comptable / Paie', permNames: ['payroll:read','payroll:write','employees:read','reports:read'] },
-      { name: 'employee', description: 'Employé standard', permNames: ['leave:read','leave:write'] },
+    const roleDefs = [
+      { name: 'super_admin', description: 'Super Administrateur', perms: allPerms.map((p) => p.name) },
+      { name: 'admin', description: 'Administrateur', perms: allPerms.map((p) => p.name) },
+      { name: 'supervisor', description: 'Superviseur', perms: ['employees:read', 'contracts:read', 'payroll:read', 'leave:read', 'reports:read', 'settings:read'] },
+      { name: 'agent', description: 'Agent', perms: ['employees:read', 'employees:write', 'leave:read', 'leave:write'] },
+      { name: 'company', description: 'Entreprise', perms: ['employees:read', 'contracts:read', 'payroll:read', 'leave:read', 'reports:read', 'settings:read'] },
+      { name: 'support_tech', description: 'Support Technique', perms: ['users:read', 'companies:read', 'settings:read', 'audit:read'] },
+      { name: 'rh_manager', description: 'Responsable RH', perms: ['employees:read', 'employees:write', 'leave:read', 'leave:write', 'leave:approve', 'contracts:read', 'reports:read'] },
+      { name: 'accountant', description: 'Comptable / Paie', perms: ['payroll:read', 'payroll:write', 'employees:read', 'reports:read'] },
+      { name: 'employee', description: 'Employe standard', perms: ['leave:read', 'leave:write'] },
     ];
-    for (const rd of rolesData) {
-      let role = await this.roleRepo.findOne({ where: { name: rd.name }, relations: ['permissions'] });
-      if (!role) {
-        role = this.roleRepo.create({ name: rd.name, description: rd.description });
-        role.permissions = allPerms.filter(p => rd.permNames.includes(p.name));
-        await this.roleRepo.save(role);
-        this.logger.log(`Rôle créé: ${rd.name}`);
-      }
+
+    for (const def of roleDefs) {
+      let role = await this.roleRepo.findOne({ where: { name: def.name }, relations: ['permissions'] });
+      if (!role) role = this.roleRepo.create({ name: def.name, description: def.description });
+      role.description = def.description;
+      role.permissions = allPerms.filter((p) => def.perms.includes(p.name));
+      await this.roleRepo.save(role);
     }
   }
 
   private async seedAdminUser() {
     const exists = await this.userRepo.findOne({ where: { email: 'admin@smarthr.com' }, relations: ['roles'] });
+    const adminRole = await this.roleRepo.findOne({ where: { name: 'super_admin' } });
+    const hashed = await bcrypt.hash('SmartHR@2026', 12);
     if (!exists) {
-      const adminRole = await this.roleRepo.findOne({ where: { name: 'admin' } });
-      const hashed = await bcrypt.hash('SmartHR@2026', 12);
       const user = this.userRepo.create({
         email: 'admin@smarthr.com',
         password: hashed,
         firstName: 'Admin',
         lastName: 'SmartHR',
+        status: 'active',
+        isActive: true,
         roles: adminRole ? [adminRole] : [],
       });
       await this.userRepo.save(user);
-      this.logger.log('Utilisateur admin créé: admin@smarthr.com / SmartHR@2026');
-    } else {
-      // Réinitialiser le mot de passe à chaque démarrage pour garantir l'accès
-      const hashed = await bcrypt.hash('SmartHR@2026', 12);
-      exists.password = hashed;
-      if (!exists.roles || exists.roles.length === 0) {
-        const adminRole = await this.roleRepo.findOne({ where: { name: 'admin' } });
-        if (adminRole) exists.roles = [adminRole];
-      }
-      await this.userRepo.save(exists);
-      this.logger.log('Mot de passe admin réinitialisé: admin@smarthr.com / SmartHR@2026');
+      this.logger.log('Utilisateur admin cree: admin@smarthr.com / SmartHR@2026');
+      return;
     }
+    exists.password = hashed;
+    exists.status = exists.status || 'active';
+    exists.isActive = exists.status === 'active';
+    if (adminRole && (!exists.roles || !exists.roles.some((r) => r.name === 'super_admin'))) {
+      exists.roles = [...(exists.roles || []), adminRole];
+    }
+    await this.userRepo.save(exists);
+    this.logger.log('Mot de passe admin reinitialise: admin@smarthr.com / SmartHR@2026');
   }
 }

@@ -31,6 +31,15 @@ const MODULES = [
     color: 'slate',
     badge: null,
   },
+  {
+    key: 'users',
+    label: 'Administration Utilisateurs',
+    description: 'Creez les comptes, gerez les statuts, les roles, les permissions RBAC et consultez l historique des actions.',
+    icon: UserGroupIcon,
+    href: '/users',
+    color: 'indigo',
+    badge: null,
+  },
 ];
 
 const colorMap = {

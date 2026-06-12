@@ -1,14 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, ILike } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Employee } from './employee.entity';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 
 @Injectable()
 export class EmployeesService {
-  constructor(@InjectRepository(Employee) private repo: Repository<Employee>) {}
+  constructor(
+    @InjectRepository(Employee) private repo: Repository<Employee>,
+    private dataSource: DataSource,
+  ) {}
 
-  // Bug 6 fix: pagination + recherche
   async findAll(companyId?: number, page = 1, limit = 1000, search?: string) {
     const qb = this.repo.createQueryBuilder('e')
       .leftJoinAndSelect('e.company', 'company')
@@ -19,8 +21,8 @@ export class EmployeesService {
     if (companyId) qb.andWhere('e.companyId = :companyId', { companyId });
     if (search) {
       qb.andWhere(
-        '(e.lastName ILIKE :s OR e.firstName ILIKE :s OR e.matricule ILIKE :s OR e.department ILIKE :s)',
-        { s: `%${search}%` }
+        '(e.lastName ILIKE :s OR e.firstName ILIKE :s OR e.matricule ILIKE :s OR e.department ILIKE :s OR e.position ILIKE :s)',
+        { s: `%${search}%` },
       );
     }
 
@@ -29,9 +31,38 @@ export class EmployeesService {
   }
 
   async findOne(id: number) {
-    const e = await this.repo.findOne({ where: { id }, relations: ['company', 'contracts'] });
-    if (!e) throw new NotFoundException('Employé non trouvé');
-    return e;
+    const employee = await this.repo.findOne({ where: { id }, relations: ['company', 'contracts'] });
+    if (!employee) throw new NotFoundException('Employe non trouve');
+    return employee;
+  }
+
+  async getDossier(id: number) {
+    const employee = await this.findOne(id);
+    const [contracts, payrolls, leaves, documents, auditLogs] = await Promise.all([
+      this.dataSource.query('SELECT * FROM contracts WHERE employee_id = $1 ORDER BY start_date DESC, created_at DESC', [id]),
+      this.dataSource.query('SELECT * FROM payrolls WHERE employee_id = $1 ORDER BY year DESC, month DESC, created_at DESC', [id]),
+      this.dataSource.query('SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY start_date DESC, created_at DESC', [id]),
+      this.safeQuery('SELECT * FROM employee_documents WHERE employee_id = $1 ORDER BY created_at DESC', [id]),
+      this.safeQuery("SELECT * FROM audit_logs WHERE entity = 'employees' AND entity_id = $1 ORDER BY created_at DESC LIMIT 100", [id]),
+    ]);
+
+    const approvedLeaveDays = leaves
+      .filter((leave) => leave.status === 'approved')
+      .reduce((sum, leave) => sum + Number(leave.days || 0), 0);
+
+    return {
+      employee,
+      contracts: contracts.map(this.camelContract),
+      payrolls: payrolls.map(this.camelPayroll),
+      leaves: leaves.map(this.camelLeave),
+      documents: documents.map(this.camelDocument),
+      auditLogs: auditLogs.map(this.camelAuditLog),
+      leaveBalance: {
+        annualEntitlement: 26,
+        usedDays: approvedLeaveDays,
+        remainingDays: Math.max(26 - approvedLeaveDays, 0),
+      },
+    };
   }
 
   async create(dto: CreateEmployeeDto) {
@@ -51,7 +82,7 @@ export class EmployeesService {
   async remove(id: number) {
     await this.findOne(id);
     await this.repo.delete(id);
-    return { message: 'Employé supprimé' };
+    return { message: 'Employe supprime' };
   }
 
   async getStats() {
@@ -64,5 +95,81 @@ export class EmployeesService {
       .groupBy('e.companyId')
       .getRawMany();
     return { total, active, inactive: total - active, byCompany };
+  }
+
+  private async safeQuery(sql: string, params: any[]) {
+    try { return await this.dataSource.query(sql, params); }
+    catch { return []; }
+  }
+
+  private camelContract(row: any) {
+    return {
+      id: row.id,
+      employeeId: row.employee_id,
+      type: row.type,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      salary: row.salary,
+      status: row.status,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private camelPayroll(row: any) {
+    return {
+      id: row.id,
+      employeeId: row.employee_id,
+      month: row.month,
+      year: row.year,
+      baseSalary: row.base_salary,
+      totalAllowances: row.total_allowances,
+      totalDeductions: row.total_deductions,
+      netSalary: row.net_salary,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private camelLeave(row: any) {
+    return {
+      id: row.id,
+      employeeId: row.employee_id,
+      type: row.type,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      reason: row.reason,
+      status: row.status,
+      days: row.days,
+      approvedBy: row.approved_by,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private camelDocument(row: any) {
+    return {
+      id: row.id,
+      employeeId: row.employee_id,
+      name: row.name,
+      type: row.type,
+      filePath: row.file_path,
+      createdAt: row.created_at,
+    };
+  }
+
+  private camelAuditLog(row: any) {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      action: row.action,
+      entity: row.entity,
+      entityId: row.entity_id,
+      details: row.details,
+      ipAddress: row.ip_address,
+      createdAt: row.created_at,
+    };
   }
 }

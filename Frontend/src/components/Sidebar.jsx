@@ -1,24 +1,25 @@
 import { NavLink } from 'react-router-dom';
 import {
-  HomeIcon, BuildingOfficeIcon, Cog6ToothIcon,
+  BuildingOfficeIcon, Cog6ToothIcon, HomeIcon, UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import {
-  HomeIcon as HomeIconSolid,
   BuildingOfficeIcon as BuildingIconSolid,
   Cog6ToothIcon as CogIconSolid,
+  HomeIcon as HomeIconSolid,
+  UserGroupIcon as UserGroupIconSolid,
 } from '@heroicons/react/24/solid';
 import Logo from './Logo';
 
 const navItems = [
-  { to: '/',          label: 'Accueil',          icon: HomeIcon,          iconSolid: HomeIconSolid,    end: true },
-  { to: '/companies', label: 'Entreprises',       icon: BuildingOfficeIcon, iconSolid: BuildingIconSolid },
-  { to: '/settings',  label: 'Paramètres',        icon: Cog6ToothIcon,     iconSolid: CogIconSolid },
+  { to: '/', label: 'Accueil', icon: HomeIcon, iconSolid: HomeIconSolid, end: true },
+  { to: '/companies', label: 'Entreprises', icon: BuildingOfficeIcon, iconSolid: BuildingIconSolid },
+  { to: '/users', label: 'Utilisateurs', icon: UserGroupIcon, iconSolid: UserGroupIconSolid },
+  { to: '/settings', label: 'Parametres', icon: Cog6ToothIcon, iconSolid: CogIconSolid },
 ];
 
 export default function Sidebar() {
   return (
     <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0 select-none">
-      {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
         <div style={{
           '--logo-text-color': '#ffffff',
@@ -29,7 +30,6 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-3">
           Navigation
@@ -60,11 +60,10 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* RDC Compliance */}
       <div className="px-4 pb-3">
         <div className="bg-white/5 rounded-xl p-3 border border-white/10">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-            Conformité RDC
+            Conformite RDC
           </p>
           <div className="flex flex-wrap gap-1.5">
             {['CNSS', 'IPR', 'INPP', 'ONEM'].map((t) => (
@@ -77,7 +76,7 @@ export default function Sidebar() {
       </div>
 
       <div className="px-4 pb-4 text-center">
-        <p className="text-slate-500 text-[11px] font-medium">© 2026 SmartHR · Boost-Tech</p>
+        <p className="text-slate-500 text-[11px] font-medium">2026 SmartHR · Boost-Tech</p>
       </div>
     </aside>
   );
