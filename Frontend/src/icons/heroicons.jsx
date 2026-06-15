@@ -20,6 +20,7 @@ const iconPaths = {
   MagnifyingGlassIcon: 'm21 21-5.2-5.2M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z',
   PencilIcon: 'm16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L8.25 18.402 3.75 19.5l1.098-4.5L16.862 4.487Z',
   PlusIcon: 'M12 4.5v15m7.5-7.5h-15',
+  PowerIcon: 'M12 2.25v9M6.225 5.811A8.25 8.25 0 1 0 17.775 5.81',
   ShieldCheckIcon: 'M12 2.25 4.5 5.25v5.7c0 4.7 3.1 9.1 7.5 10.8 4.4-1.7 7.5-6.1 7.5-10.8v-5.7L12 2.25Zm-3 10.5 2.25 2.25L15.75 9',
   TrashIcon: 'M6 7.5h12M9 7.5v12m6-12v12M9.75 7.5l.75-3h3l.75 3M6.75 7.5l.75 13.5h9l.75-13.5',
   UserCircleIcon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-10.5a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Zm-5.25 7.125a6 6 0 0 1 10.5 0',
@@ -68,6 +69,7 @@ export const HomeIcon = createIcon('HomeIcon');
 export const MagnifyingGlassIcon = createIcon('MagnifyingGlassIcon');
 export const PencilIcon = createIcon('PencilIcon');
 export const PlusIcon = createIcon('PlusIcon');
+export const PowerIcon = createIcon('PowerIcon');
 export const ShieldCheckIcon = createIcon('ShieldCheckIcon');
 export const TrashIcon = createIcon('TrashIcon');
 export const UserCircleIcon = createIcon('UserCircleIcon');

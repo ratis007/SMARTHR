@@ -1,81 +1,76 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { payrollApi, employeesApi } from '../services/api';
 import Modal from '../components/Modal';
 import toast from 'react-hot-toast';
-import { PlusIcon, CheckIcon, BanknotesIcon } from '@heroicons/react/24/outline';
+import { BanknotesIcon, CheckIcon, PencilIcon, PlusIcon, PowerIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const getPayrollEmployeeId = (payroll) => Number(payroll?.employeeId ?? payroll?.employee?.id);
-
-const MONTH_NAMES = ['Janvier','FÃ©vrier','Mars','Avril','Mai','Juin','Juillet','AoÃ»t','Septembre','Octobre','Novembre','DÃ©cembre'];
-
+const MONTH_NAMES = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'];
 const statusConfig = {
-  draft:     { label: 'Brouillon', cls: 'badge-yellow' },
-  validated: { label: 'ValidÃ©',    cls: 'badge-green' },
-  paid:      { label: 'PayÃ©',      cls: 'badge-blue' },
+  draft: { label: 'Brouillon', cls: 'badge-yellow' },
+  validated: { label: 'Valide', cls: 'badge-green' },
+  paid: { label: 'Paye', cls: 'badge-blue' },
+  archived: { label: 'Archive', cls: 'badge-red' },
 };
 
-function GenerateForm({ employees, existingPayrolls = [], onSubmit, onClose, initialMonth, initialYear }) {
+function PayrollForm({ employees, existingPayrolls = [], initialData, onSubmit, onClose, initialMonth, initialYear }) {
   const now = new Date();
+  const initialAllowance = initialData?.details?.find((detail) => detail.type === 'allowance');
   const [form, setForm] = useState({
-    employeeId: '',
-    month: initialMonth ?? now.getMonth() + 1,
-    year: initialYear ?? now.getFullYear(),
-    baseSalary: '',
+    employeeId: initialData ? String(getPayrollEmployeeId(initialData)) : '',
+    month: initialData?.month ?? initialMonth ?? now.getMonth() + 1,
+    year: initialData?.year ?? initialYear ?? now.getFullYear(),
+    baseSalary: initialData?.baseSalary ?? '',
+    allowanceLabel: initialAllowance?.label ?? '',
+    allowanceAmount: initialAllowance?.amount ?? '',
   });
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const set = (key) => (event) => setForm({ ...form, [key]: event.target.value });
+  const isEditing = Boolean(initialData);
   const usedEmployeeIds = new Set(
     existingPayrolls
-      .filter((p) => Number(p.month) === Number(form.month) && Number(p.year) === Number(form.year))
+      .filter((payroll) => Number(payroll.month) === Number(form.month) && Number(payroll.year) === Number(form.year) && Number(payroll.id) !== Number(initialData?.id))
       .map(getPayrollEmployeeId)
   );
   const selectedIsUsed = form.employeeId && usedEmployeeIds.has(Number(form.employeeId));
 
-  useEffect(() => {
-    setForm((current) => ({
-      ...current,
-      month: initialMonth ?? current.month,
-      year: initialYear ?? current.year,
-    }));
-  }, [initialMonth, initialYear]);
+  const submit = (event) => {
+    event.preventDefault();
+    if (selectedIsUsed) {
+      toast.error('Une fiche existe deja pour cet employe sur cette periode');
+      return;
+    }
+    const allowances = form.allowanceAmount
+      ? [{ label: form.allowanceLabel || 'Prime', amount: Number(form.allowanceAmount) }]
+      : [];
+    onSubmit({
+      employeeId: Number(form.employeeId),
+      month: Number(form.month),
+      year: Number(form.year),
+      baseSalary: form.baseSalary ? Number(form.baseSalary) : undefined,
+      allowances,
+    });
+  };
 
   return (
-    <form onSubmit={(e) => {
-      e.preventDefault();
-      if (selectedIsUsed) {
-        toast.error('Une fiche existe deja pour cet employe sur cette periode');
-        return;
-      }
-      onSubmit({ ...form, employeeId: +form.employeeId, month: +form.month, year: +form.year, baseSalary: form.baseSalary ? +form.baseSalary : undefined });
-    }} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4">
       <div>
-        <label className="label">EmployÃ© *</label>
-        <select className="input" value={form.employeeId} onChange={set('employeeId')} required>
-          <option value="">SÃ©lectionner un employÃ©...</option>
-          {employees.map((e) => <option key={e.id} value={e.id}>{e.lastName} {e.firstName} â€” {e.matricule}</option>)}
+        <label className="label">Employe *</label>
+        <select className="input" value={form.employeeId} onChange={set('employeeId')} required disabled={isEditing}>
+          <option value="">Selectionner un employe...</option>
+          {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.lastName} {employee.firstName} - {employee.matricule}</option>)}
         </select>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label">Mois *</label>
-          <select className="input" value={form.month} onChange={set('month')}>
-            {MONTH_NAMES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">AnnÃ©e *</label>
-          <input type="number" className="input" value={form.year} onChange={set('year')} required />
-        </div>
+        <div><label className="label">Mois *</label><select className="input" value={form.month} onChange={set('month')}>{MONTH_NAMES.map((month, index) => <option key={index + 1} value={index + 1}>{month}</option>)}</select></div>
+        <div><label className="label">Annee *</label><input type="number" className="input" value={form.year} onChange={set('year')} required /></div>
       </div>
-      <div>
-        <label className="label">Salaire de base (optionnel)</label>
-        <input type="number" className="input" value={form.baseSalary} onChange={set('baseSalary')} placeholder="Laisser vide = salaire du contrat" />
-      </div>
-      <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-100">
-        <p className="text-xs font-semibold text-indigo-700 mb-1">ðŸ‡¨ðŸ‡© DÃ©ductions automatiques RDC</p>
-        <p className="text-xs text-indigo-600">CNSS Â· IPR Â· INPP Â· ONEM seront calculÃ©s automatiquement selon les taux lÃ©gaux en vigueur.</p>
+      <div><label className="label">Salaire de base</label><input type="number" className="input" value={form.baseSalary ?? ''} onChange={set('baseSalary')} placeholder="Laisser vide = salaire employe" /></div>
+      <div className="grid grid-cols-[1fr_140px] gap-3">
+        <div><label className="label">Prime</label><input className="input" value={form.allowanceLabel} onChange={set('allowanceLabel')} placeholder="Ex: Transport" /></div>
+        <div><label className="label">Montant</label><input type="number" className="input" value={form.allowanceAmount} onChange={set('allowanceAmount')} /></div>
       </div>
       <div className="flex gap-3 pt-2">
-        <button type="submit" className="btn-primary flex-1 justify-center">GÃ©nÃ©rer la fiche</button>
+        <button type="submit" className="btn-primary flex-1 justify-center">{isEditing ? 'Enregistrer' : 'Generer la fiche'}</button>
         <button type="button" onClick={onClose} className="btn-secondary flex-1">Annuler</button>
       </div>
     </form>
@@ -89,166 +84,102 @@ export default function PayrollPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [modal, setModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [confirm, setConfirm] = useState(null);
   const [loading, setLoading] = useState(true);
   const pendingPayrollRef = useRef(null);
 
   const load = async (loadMonth = month, loadYear = year) => {
     setLoading(true);
     try {
-      const [p, e] = await Promise.all([payrollApi.getAll(loadMonth, loadYear), employeesApi.getAll()]);
+      const [payrollRes, employeeRes] = await Promise.all([payrollApi.getAll(loadMonth, loadYear), employeesApi.getAll()]);
       const pending = pendingPayrollRef.current;
-      const visiblePayrolls = Array.isArray(p.data) ? p.data : [];
-      const shouldKeepPending = pending &&
-        Number(pending.month) === Number(loadMonth) &&
-        Number(pending.year) === Number(loadYear) &&
-        !visiblePayrolls.some((item) =>
-          Number(item.id) === Number(pending.id) ||
-          (
-            getPayrollEmployeeId(item) === getPayrollEmployeeId(pending) &&
-            Number(item.month) === Number(pending.month) &&
-            Number(item.year) === Number(pending.year)
-          )
-        );
+      const visiblePayrolls = Array.isArray(payrollRes.data) ? payrollRes.data : [];
+      const shouldKeepPending = pending && Number(pending.month) === Number(loadMonth) && Number(pending.year) === Number(loadYear) && !visiblePayrolls.some((item) => Number(item.id) === Number(pending.id));
       setPayrolls(shouldKeepPending ? [pending, ...visiblePayrolls] : visiblePayrolls);
-      setEmployees(e.data);
+      setEmployees(employeeRes.data);
     } catch (err) {
-      console.error('[PayrollPage] load error', err);
+      toast.error(err.response?.data?.message || 'Chargement de la paie impossible');
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => { load(); }, [month, year]);
 
   const handleGenerate = async (data) => {
-    const exists = payrolls.some((p) =>
-      getPayrollEmployeeId(p) === Number(data.employeeId) &&
-      Number(p.month) === Number(data.month) &&
-      Number(p.year) === Number(data.year)
-    );
-    if (exists) {
-      toast.error('Une fiche existe deja pour cet employe sur cette periode');
-      return;
-    }
-
     try {
       const { data: created } = await payrollApi.generate(data);
-      const employee = employees.find((e) => Number(e.id) === Number(data.employeeId));
-      const payroll = { status: 'draft', ...created, employee: created.employee ?? employee };
-      pendingPayrollRef.current = payroll;
-      toast.success('Fiche de paie gÃ©nÃ©rÃ©e');
+      pendingPayrollRef.current = { status: 'draft', ...created, employee: created.employee ?? employees.find((employee) => Number(employee.id) === Number(data.employeeId)) };
+      toast.success('Fiche de paie generee');
       setMonth(data.month);
       setYear(data.year);
-      setPayrolls((current) => {
-        const samePeriod = Number(month) === Number(data.month) && Number(year) === Number(data.year);
-        const next = current.filter((p) => p.id !== payroll.id);
-        return samePeriod ? [payroll, ...next] : [payroll];
-      });
       setModal(false);
       await load(data.month, data.year);
-    }
-    catch (err) {
-      if (err.response?.status === 409) {
-        toast('Cette fiche existe deja. Liste actualisee.');
-        setMonth(data.month);
-        setYear(data.year);
-        setModal(false);
-        await load(data.month, data.year);
-        return;
-      }
-      console.error('[PayrollPage] generate error', err);
-      toast.error(err.response?.data?.message || 'Erreur lors de la gÃ©nÃ©ration');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur lors de la generation');
     }
   };
-
+  const handleUpdate = async (data) => {
+    try { await payrollApi.update(editing.id, data); toast.success('Fiche modifiee'); setEditing(null); load(); }
+    catch (err) { toast.error(err.response?.data?.message || 'Modification impossible'); }
+  };
   const handleValidate = async (id) => {
-    try { await payrollApi.validate(id); toast.success('Fiche validÃ©e'); load(); }
-    catch (err) { toast.error(err.response?.data?.message || 'Erreur'); }
+    try { await payrollApi.validate(id); toast.success('Fiche validee'); load(); }
+    catch (err) { toast.error(err.response?.data?.message || 'Validation impossible'); }
+  };
+  const handleToggleStatus = async (payroll) => {
+    try { await payrollApi.toggleStatus(payroll.id); toast.success(payroll.status === 'archived' ? 'Fiche activee' : 'Fiche archivee'); setConfirm(null); load(); }
+    catch (err) { toast.error(err.response?.data?.message || 'Changement de statut impossible'); }
+  };
+  const handleDelete = async (payroll) => {
+    try { await payrollApi.delete(payroll.id); toast.success('Fiche archivee'); setConfirm(null); load(); }
+    catch (err) { toast.error(err.response?.data?.message || 'Suppression impossible'); }
   };
 
-  const totalMasse = payrolls.reduce((s, p) => s + Number(p.netSalary), 0);
-  const totalBrut = payrolls.reduce((s, p) => s + Number(p.baseSalary) + Number(p.totalAllowances), 0);
-  const totalDed = payrolls.reduce((s, p) => s + Number(p.totalDeductions), 0);
+  const totalMasse = payrolls.reduce((sum, payroll) => sum + Number(payroll.netSalary), 0);
+  const totalBrut = payrolls.reduce((sum, payroll) => sum + Number(payroll.baseSalary) + Number(payroll.totalAllowances), 0);
+  const totalDed = payrolls.reduce((sum, payroll) => sum + Number(payroll.totalDeductions), 0);
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="page-header">
-        <div>
-          <h1 className="page-title">Gestion de la Paie</h1>
-          <p className="page-subtitle">{MONTH_NAMES[month - 1]} {year} Â· {payrolls.length} fiche(s)</p>
-        </div>
-        <button onClick={() => setModal(true)} className="btn-primary">
-          <PlusIcon className="w-4 h-4" /> GÃ©nÃ©rer une fiche
-        </button>
+        <div><h1 className="page-title">Gestion de la Paie</h1><p className="page-subtitle">{MONTH_NAMES[month - 1]} {year} - {payrolls.length} fiche(s)</p></div>
+        <button onClick={() => setModal(true)} className="btn-primary"><PlusIcon className="w-4 h-4" /> Generer une fiche</button>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="card bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
-          <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wide">Masse salariale nette</p>
-          <p className="text-2xl font-bold text-indigo-700 mt-1">{totalMasse.toLocaleString()} CDF</p>
-        </div>
-        <div className="card bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
-          <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide">Total brut</p>
-          <p className="text-2xl font-bold text-emerald-700 mt-1">{totalBrut.toLocaleString()} CDF</p>
-        </div>
-        <div className="card bg-gradient-to-br from-red-50 to-white border-red-100">
-          <p className="text-xs font-semibold text-red-400 uppercase tracking-wide">Total dÃ©ductions</p>
-          <p className="text-2xl font-bold text-red-600 mt-1">{totalDed.toLocaleString()} CDF</p>
-        </div>
+        <SummaryCard tone="indigo" title="Masse salariale nette" value={totalMasse} />
+        <SummaryCard tone="emerald" title="Total brut" value={totalBrut} />
+        <SummaryCard tone="red" title="Total deductions" value={totalDed} />
       </div>
 
-      {/* Filters */}
       <div className="flex gap-3 items-center">
-        <select className="input w-44" value={month} onChange={(e) => setMonth(+e.target.value)}>
-          {MONTH_NAMES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-        </select>
-        <input type="number" className="input w-28" value={year} onChange={(e) => setYear(+e.target.value)} />
+        <select className="input w-44" value={month} onChange={(event) => setMonth(Number(event.target.value))}>{MONTH_NAMES.map((name, index) => <option key={index + 1} value={index + 1}>{name}</option>)}</select>
+        <input type="number" className="input w-28" value={year} onChange={(event) => setYear(Number(event.target.value))} />
       </div>
 
       {loading ? (
         <div className="loading-spinner"><p className="text-gray-400 text-sm">Chargement...</p></div>
       ) : payrolls.length === 0 ? (
-        <div className="empty-state card">
-          <BanknotesIcon className="w-14 h-14 text-gray-200 mb-3" />
-          <p className="text-gray-500 font-medium">Aucune fiche pour cette pÃ©riode</p>
-          <p className="text-gray-400 text-sm mt-1">GÃ©nÃ©rez des fiches de paie pour {MONTH_NAMES[month - 1]} {year}</p>
-        </div>
+        <div className="empty-state card"><BanknotesIcon className="w-14 h-14 text-gray-200 mb-3" /><p className="text-gray-500 font-medium">Aucune fiche pour cette periode</p></div>
       ) : (
-        <div className="table-container">
-          <table className="w-full text-sm">
-            <thead><tr>
-              {['Matricule', 'EmployÃ©', 'Salaire base', 'Primes', 'DÃ©ductions', 'Net Ã  payer', 'Statut', 'Action'].map((h) => (
-                <th key={h} className="th">{h}</th>
-              ))}
-            </tr></thead>
+        <div className="table-container overflow-x-auto">
+          <table className="w-full text-sm min-w-[1080px]">
+            <thead><tr>{['Matricule', 'Employe', 'Salaire base', 'Primes', 'Deductions', 'Net a payer', 'Statut', 'Actions'].map((header) => <th key={header} className="th">{header}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-50">
-              {payrolls.map((p) => {
-                const sc = statusConfig[p.status] ?? statusConfig.draft;
+              {payrolls.map((payroll) => {
+                const status = statusConfig[payroll.status] ?? statusConfig.draft;
                 return (
-                  <tr key={p.id} className="tr-hover">
-                    <td className="td">
-                      <span className="font-mono text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">{p.employee?.matricule}</span>
-                    </td>
-                    <td className="td">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0">
-                          {p.employee?.lastName?.[0]}{p.employee?.firstName?.[0]}
-                        </div>
-                        <span className="font-medium text-gray-900">{p.employee?.lastName} {p.employee?.firstName}</span>
-                      </div>
-                    </td>
-                    <td className="td">{Number(p.baseSalary).toLocaleString()}</td>
-                    <td className="td text-emerald-600 font-medium">+{Number(p.totalAllowances).toLocaleString()}</td>
-                    <td className="td text-red-500 font-medium">-{Number(p.totalDeductions).toLocaleString()}</td>
-                    <td className="td font-bold text-gray-900">{Number(p.netSalary).toLocaleString()} CDF</td>
-                    <td className="td"><span className={sc.cls}>{sc.label}</span></td>
-                    <td className="td">
-                      {p.status === 'draft' && (
-                        <button onClick={() => handleValidate(p.id)} className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 px-2.5 py-1.5 rounded-lg transition-colors">
-                          <CheckIcon className="w-3.5 h-3.5" /> Valider
-                        </button>
-                      )}
-                    </td>
+                  <tr key={payroll.id} className="tr-hover">
+                    <td className="td"><span className="font-mono text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">{payroll.employee?.matricule}</span></td>
+                    <td className="td"><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0">{payroll.employee?.lastName?.[0]}{payroll.employee?.firstName?.[0]}</div><span className="font-medium text-gray-900">{payroll.employee?.lastName} {payroll.employee?.firstName}</span></div></td>
+                    <td className="td">{Number(payroll.baseSalary).toLocaleString('fr-FR')}</td>
+                    <td className="td text-emerald-600 font-medium">+{Number(payroll.totalAllowances).toLocaleString('fr-FR')}</td>
+                    <td className="td text-red-500 font-medium">-{Number(payroll.totalDeductions).toLocaleString('fr-FR')}</td>
+                    <td className="td font-bold text-gray-900">{Number(payroll.netSalary).toLocaleString('fr-FR')} CDF</td>
+                    <td className="td"><span className={status.cls}>{status.label}</span></td>
+                    <td className="td"><PayrollActions payroll={payroll} onValidate={handleValidate} onEdit={setEditing} onConfirm={setConfirm} /></td>
                   </tr>
                 );
               })}
@@ -257,11 +188,43 @@ export default function PayrollPage() {
         </div>
       )}
 
-      {modal && (
-        <Modal title="GÃ©nÃ©rer une fiche de paie" onClose={() => setModal(false)}>
-          <GenerateForm employees={employees} existingPayrolls={payrolls} initialMonth={month} initialYear={year} onSubmit={handleGenerate} onClose={() => setModal(false)} />
-        </Modal>
-      )}
+      {modal && <Modal title="Generer une fiche de paie" onClose={() => setModal(false)}><PayrollForm employees={employees} existingPayrolls={payrolls} initialMonth={month} initialYear={year} onSubmit={handleGenerate} onClose={() => setModal(false)} /></Modal>}
+      {editing && <Modal title="Modifier la fiche" onClose={() => setEditing(null)}><PayrollForm employees={employees} existingPayrolls={payrolls} initialData={editing} onSubmit={handleUpdate} onClose={() => setEditing(null)} /></Modal>}
+      {confirm && <ConfirmModal confirm={confirm} onClose={() => setConfirm(null)} onDelete={handleDelete} onToggle={handleToggleStatus} />}
     </div>
+  );
+}
+
+function SummaryCard({ title, value, tone }) {
+  const color = {
+    indigo: 'from-indigo-50 to-white border-indigo-100 text-indigo-700 text-indigo-500',
+    emerald: 'from-emerald-50 to-white border-emerald-100 text-emerald-700 text-emerald-500',
+    red: 'from-red-50 to-white border-red-100 text-red-600 text-red-400',
+  }[tone];
+  return <div className={`card bg-gradient-to-br ${color}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-75">{title}</p><p className="text-2xl font-bold mt-1">{Number(value).toLocaleString('fr-FR')} CDF</p></div>;
+}
+
+function PayrollActions({ payroll, onValidate, onEdit, onConfirm }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {payroll.status === 'draft' && <button type="button" title="Valider" onClick={() => onValidate(payroll.id)} className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors"><CheckIcon className="w-4 h-4" /></button>}
+      {payroll.status === 'draft' && <button type="button" title="Modifier" onClick={() => onEdit(payroll)} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"><PencilIcon className="w-4 h-4" /></button>}
+      <button type="button" title={payroll.status === 'archived' ? 'Activer' : 'Archiver'} onClick={() => onConfirm({ type: 'status', item: payroll })} className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors"><PowerIcon className="w-4 h-4" /></button>
+      {payroll.status === 'draft' && <button type="button" title="Supprimer" onClick={() => onConfirm({ type: 'delete', item: payroll })} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>}
+    </div>
+  );
+}
+
+function ConfirmModal({ confirm, onClose, onDelete, onToggle }) {
+  return (
+    <Modal title={confirm.type === 'delete' ? 'Archiver la fiche' : 'Changer le statut'} onClose={onClose} size="sm">
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600">{confirm.type === 'delete' ? 'Archiver cette fiche de paie ?' : `${confirm.item.status === 'archived' ? 'Activer' : 'Archiver'} cette fiche de paie ?`}</p>
+        <div className="flex gap-3">
+          <button type="button" className="btn-primary flex-1 justify-center" onClick={() => confirm.type === 'delete' ? onDelete(confirm.item) : onToggle(confirm.item)}>Confirmer</button>
+          <button type="button" className="btn-secondary flex-1" onClick={onClose}>Annuler</button>
+        </div>
+      </div>
+    </Modal>
   );
 }

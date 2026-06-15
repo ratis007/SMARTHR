@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Employee } from './employee.entity';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { UpdateEmployeeDto } from './dto/update-employee.dto';
 
 @Injectable()
 export class EmployeesService {
@@ -73,16 +74,37 @@ export class EmployeesService {
     return this.repo.save(this.repo.create(dto));
   }
 
-  async update(id: number, dto: Partial<CreateEmployeeDto>) {
+  async update(id: number, dto: UpdateEmployeeDto) {
     await this.findOne(id);
     await this.repo.update(id, dto);
     return this.findOne(id);
   }
 
-  async remove(id: number) {
+  async setStatus(id: number, status: Employee['status']) {
     await this.findOne(id);
-    await this.repo.delete(id);
-    return { message: 'Employe supprime' };
+    await this.repo.update(id, { status });
+    return this.findOne(id);
+  }
+
+  async toggleStatus(id: number) {
+    const employee = await this.findOne(id);
+    const nextStatus = employee.status === 'active' ? 'inactive' : 'active';
+    return this.setStatus(id, nextStatus as Employee['status']);
+  }
+
+  async remove(id: number) {
+    const employee = await this.findOne(id);
+    const [{ count }] = await this.dataSource.query(
+      "SELECT COUNT(*)::int AS count FROM payrolls WHERE employee_id = $1 AND status IN ('validated', 'paid')",
+      [id],
+    );
+
+    if (employee.status === 'active' && Number(count) > 0) {
+      throw new BadRequestException("Impossible de supprimer un employe actif lie a un historique de paie valide.");
+    }
+
+    await this.repo.update(id, { status: 'inactive' as any });
+    return { message: 'Employe archive' };
   }
 
   async getStats() {

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { payrollApi, employeesApi, platformSettingsApi } from '../../services/api';
 import Modal from '../../components/Modal';
 import toast from 'react-hot-toast';
-import { PlusIcon, CheckIcon, BanknotesIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, CheckIcon, BanknotesIcon, ArrowTrendingUpIcon, PencilIcon, PowerIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const getPayrollEmployeeId = (payroll) => Number(payroll?.employeeId ?? payroll?.employee?.id);
 const MONTH_NAMES = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'];
@@ -139,6 +139,57 @@ function GenerateForm({ employees, existingPayrolls = [], currency, onSubmit, on
   );
 }
 
+function UpdatePayrollForm({ payroll, currency, onSubmit, onClose }) {
+  const initialAllowance = payroll.details?.find((detail) => detail.type === 'allowance');
+  const [form, setForm] = useState({
+    month: payroll.month,
+    year: payroll.year,
+    baseSalary: payroll.baseSalary ?? '',
+    salaryCurrency: 'CDF',
+    allowanceLabel: initialAllowance?.label ?? '',
+    allowanceAmount: initialAllowance?.amount ?? '',
+  });
+  const set = (key) => (event) => setForm({ ...form, [key]: event.target.value });
+  const preview = convertAmount(form.baseSalary, form.salaryCurrency, currency);
+
+  return (
+    <form onSubmit={(event) => {
+      event.preventDefault();
+      onSubmit({
+        month: Number(form.month),
+        year: Number(form.year),
+        baseSalary: form.baseSalary ? preview.CDF : undefined,
+        allowances: form.allowanceAmount ? [{ label: form.allowanceLabel || 'Prime', amount: Number(form.allowanceAmount) }] : [],
+      });
+    }} className="space-y-4">
+      <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-sm">
+        <p className="font-bold text-slate-800">{payroll.employee?.lastName} {payroll.employee?.firstName}</p>
+        <p className="text-slate-500">{payroll.employee?.matricule}</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="label">Mois *</label>
+          <select className="input" value={form.month} onChange={set('month')}>
+            {MONTH_NAMES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+          </select>
+        </div>
+        <div><label className="label">Annee *</label><input type="number" className="input" value={form.year} onChange={set('year')} required /></div>
+      </div>
+      <div className="grid grid-cols-[1fr_120px] gap-3">
+        <div><label className="label">Salaire de base</label><input type="number" className="input" value={form.baseSalary} onChange={set('baseSalary')} /></div>
+        <div><label className="label">Devise</label><select className="input" value={form.salaryCurrency} onChange={set('salaryCurrency')}><option value="CDF">FC</option><option value="USD">USD</option></select></div>
+      </div>
+      <div className="grid grid-cols-[1fr_140px] gap-3">
+        <div><label className="label">Prime</label><input className="input" value={form.allowanceLabel} onChange={set('allowanceLabel')} placeholder="Ex: Transport" /></div>
+        <div><label className="label">Montant FC</label><input type="number" className="input" value={form.allowanceAmount} onChange={set('allowanceAmount')} /></div>
+      </div>
+      <div className="flex gap-3 pt-2">
+        <button type="submit" className="btn-primary flex-1 justify-center">Enregistrer</button>
+        <button type="button" onClick={onClose} className="btn-secondary flex-1">Annuler</button>
+      </div>
+    </form>
+  );
+}
+
 export default function CompanyPayroll() {
   const { companyId: rawId } = useParams();
   const companyId = rawId ? Number(rawId) : null;
@@ -150,6 +201,8 @@ export default function CompanyPayroll() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [modal, setModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [confirm, setConfirm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState(100);
   const [fromCurrency, setFromCurrency] = useState('USD');
@@ -259,6 +312,39 @@ export default function CompanyPayroll() {
   const handleValidate = async (id) => {
     try { await payrollApi.validate(id); toast.success('Fiche validee'); load(); }
     catch (err) { toast.error(err.response?.data?.message || 'Erreur'); }
+  };
+
+  const handleUpdate = async (data) => {
+    try {
+      await payrollApi.update(editing.id, data);
+      toast.success('Fiche modifiee');
+      setEditing(null);
+      await load(data.month, data.year);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Modification impossible');
+    }
+  };
+
+  const handleToggleStatus = async (payroll) => {
+    try {
+      await payrollApi.toggleStatus(payroll.id);
+      toast.success(payroll.status === 'archived' ? 'Fiche activee' : 'Fiche archivee');
+      setConfirm(null);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Changement de statut impossible');
+    }
+  };
+
+  const handleDelete = async (payroll) => {
+    try {
+      await payrollApi.delete(payroll.id);
+      toast.success('Fiche archivee');
+      setConfirm(null);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Suppression impossible');
+    }
   };
 
   const totalMasse = payrolls.reduce((s, p) => s + Number(p.netSalary), 0);
@@ -379,11 +465,26 @@ export default function CompanyPayroll() {
                     <td className="td"><DualMoney value={p.netSalary} currency={currency} /></td>
                     <td className="td"><span className={sc.cls}>{sc.label}</span></td>
                     <td className="td">
-                      {p.status === 'draft' && (
-                        <button onClick={() => handleValidate(p.id)} className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 px-2.5 py-1.5 rounded-lg transition-colors">
-                          <CheckIcon className="w-3.5 h-3.5" /> Valider
+                      <div className="flex items-center gap-1.5">
+                        {p.status === 'draft' && (
+                          <button type="button" title="Valider" onClick={() => handleValidate(p.id)} className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors">
+                            <CheckIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                        {p.status === 'draft' && (
+                          <button type="button" title="Modifier" onClick={() => setEditing(p)} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
+                            <PencilIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button type="button" title={p.status === 'archived' ? 'Activer' : 'Archiver'} onClick={() => setConfirm({ type: 'status', item: p })} className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors">
+                          <PowerIcon className="w-4 h-4" />
                         </button>
-                      )}
+                        {p.status === 'draft' && (
+                          <button type="button" title="Supprimer" onClick={() => setConfirm({ type: 'delete', item: p })} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -410,6 +511,26 @@ export default function CompanyPayroll() {
       {modal && (
         <Modal title="Generer une fiche de paie" onClose={() => setModal(false)}>
           <GenerateForm employees={employees} existingPayrolls={payrolls} currency={currency} initialMonth={month} initialYear={year} onSubmit={handleGenerate} onClose={() => setModal(false)} />
+        </Modal>
+      )}
+      {editing && (
+        <Modal title="Modifier la fiche" onClose={() => setEditing(null)}>
+          <UpdatePayrollForm payroll={editing} currency={currency} onSubmit={handleUpdate} onClose={() => setEditing(null)} />
+        </Modal>
+      )}
+      {confirm && (
+        <Modal title={confirm.type === 'delete' ? 'Archiver la fiche' : 'Changer le statut'} onClose={() => setConfirm(null)} size="sm">
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              {confirm.type === 'delete'
+                ? 'Archiver cette fiche de paie ?'
+                : `${confirm.item.status === 'archived' ? 'Activer' : 'Archiver'} cette fiche de paie ?`}
+            </p>
+            <div className="flex gap-3">
+              <button type="button" className="btn-primary flex-1 justify-center" onClick={() => confirm.type === 'delete' ? handleDelete(confirm.item) : handleToggleStatus(confirm.item)}>Confirmer</button>
+              <button type="button" className="btn-secondary flex-1" onClick={() => setConfirm(null)}>Annuler</button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

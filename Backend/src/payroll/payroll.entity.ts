@@ -5,7 +5,7 @@ import {
 import { Employee } from '../employees/employee.entity';
 import { PayrollDetail } from './payroll-detail.entity';
 
-export enum PayrollStatus { DRAFT = 'draft', VALIDATED = 'validated', PAID = 'paid' }
+export enum PayrollStatus { DRAFT = 'draft', VALIDATED = 'validated', PAID = 'paid', ARCHIVED = 'archived' }
 
 @Entity('payrolls')
 @Unique(['employeeId', 'month', 'year']) // Bug 1 fix: empêche double paie

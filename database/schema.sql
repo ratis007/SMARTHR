@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS payrolls (
   total_allowances DECIMAL(15, 2) DEFAULT 0,
   total_deductions DECIMAL(15, 2) DEFAULT 0,
   net_salary DECIMAL(15, 2) DEFAULT 0,
-  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'validated', 'paid')),
+  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'validated', 'paid', 'archived')),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   UNIQUE (employee_id, month, year)

@@ -50,6 +50,9 @@ export const companiesApi = {
   getOne: (id) => api.get(`/companies/${id}`),
   create: (data) => api.post('/companies', data),
   update: (id, data) => api.put(`/companies/${id}`, data),
+  toggleStatus: (id) => api.patch(`/companies/${id}/toggle-status`),
+  activate: (id) => api.patch(`/companies/${id}/activate`),
+  archive: (id) => api.patch(`/companies/${id}/archive`),
   delete: (id) => api.delete(`/companies/${id}`),
 };
 
@@ -65,6 +68,9 @@ export const employeesApi = {
   getStats: () => api.get('/employees/stats'),
   create: (data) => api.post('/employees', data),
   update: (id, data) => api.put(`/employees/${id}`, data),
+  toggleStatus: (id) => api.patch(`/employees/${id}/toggle-status`),
+  activate: (id) => api.patch(`/employees/${id}/activate`),
+  deactivate: (id) => api.patch(`/employees/${id}/deactivate`),
   delete: (id) => api.delete(`/employees/${id}`),
 };
 
@@ -73,6 +79,9 @@ export const contractsApi = {
   getOne: (id) => api.get(`/contracts/${id}`),
   create: (data) => api.post('/contracts', data),
   update: (id, data) => api.put(`/contracts/${id}`, data),
+  toggleStatus: (id) => api.patch(`/contracts/${id}/toggle-status`),
+  activate: (id) => api.patch(`/contracts/${id}/activate`),
+  deactivate: (id) => api.patch(`/contracts/${id}/deactivate`),
   delete: (id) => api.delete(`/contracts/${id}`),
 };
 
@@ -82,7 +91,11 @@ export const payrollApi = {
   getOne: (id) => api.get(`/payroll/${id}`),
   getSummary: (month, year, companyId) => api.get('/payroll/summary', { params: { month, year, ...(companyId ? { companyId } : {}) } }),
   generate: (data) => api.post('/payroll/generate', data),
+  update: (id, data) => api.put(`/payroll/${id}`, data),
   validate: (id) => api.put(`/payroll/${id}/validate`),
+  toggleStatus: (id) => api.patch(`/payroll/${id}/toggle-status`),
+  activate: (id) => api.patch(`/payroll/${id}/activate`),
+  deactivate: (id) => api.patch(`/payroll/${id}/deactivate`),
   delete: (id) => api.delete(`/payroll/${id}`),
 };
 

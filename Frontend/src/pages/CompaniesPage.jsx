@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { companiesApi } from '../services/api';
 import Modal from '../components/Modal';
+import CompanyDeleteModal from '../components/CompanyDeleteModal';
 import toast from 'react-hot-toast';
-import { PlusIcon, PencilIcon, TrashIcon, BuildingOfficeIcon, MagnifyingGlassIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, BuildingOfficeIcon, MagnifyingGlassIcon, ArrowRightIcon, PowerIcon } from '@heroicons/react/24/outline';
 
 function CompanyForm({ initial, onSubmit, onClose }) {
   const [form, setForm] = useState(initial || { name: '', rccm: '', idNat: '', taxNumber: '', address: '', phone: '', email: '' });
@@ -55,9 +56,11 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [navigatingId, setNavigatingId] = useState(null);
+  const [lifecycleCompany, setLifecycleCompany] = useState(null);
   const navigate = useNavigate();
 
   const load = () => {
+    setLoading(true);
     companiesApi.getAll().then(({ data }) => setCompanies(data)).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
@@ -74,10 +77,36 @@ export default function CompaniesPage() {
     try { await companiesApi.update(modal.edit.id, data); toast.success('Mise à jour effectuée'); setModal(null); load(); }
     catch { toast.error('Erreur lors de la mise à jour'); }
   };
-  const handleDelete = async (id) => {
-    if (!confirm('Supprimer cette entreprise ?')) return;
-    try { await companiesApi.delete(id); toast.success('Entreprise supprimée'); load(); }
-    catch { toast.error('Erreur lors de la suppression'); }
+  const handleArchive = async (company) => {
+    try {
+      await companiesApi.archive(company.id);
+      toast.success('Entreprise archivee');
+      setLifecycleCompany(null);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Archivage impossible");
+    }
+  };
+
+  const handleHardDelete = async (company) => {
+    try {
+      await companiesApi.delete(company.id);
+      toast.success('Entreprise supprimee definitivement');
+      setLifecycleCompany(null);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Suppression definitive impossible');
+    }
+  };
+
+  const handleToggleStatus = async (company) => {
+    try {
+      await companiesApi.toggleStatus(company.id);
+      toast.success(company.isActive !== false ? 'Entreprise archivee' : 'Entreprise activee');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Changement de statut impossible');
+    }
   };
 
   const handleManage = (id) => {
@@ -124,7 +153,10 @@ export default function CompaniesPage() {
                   <button onClick={() => setModal({ edit: c })} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                     <PencilIcon className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(c.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <button onClick={() => handleToggleStatus(c)} title={c.isActive !== false ? 'Archiver' : 'Activer'} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                    <PowerIcon className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setLifecycleCompany(c)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                     <TrashIcon className="w-4 h-4" />
                   </button>
                 </div>
@@ -177,6 +209,14 @@ export default function CompaniesPage() {
         <Modal title="Modifier l'entreprise" onClose={() => setModal(null)}>
           <CompanyForm initial={modal.edit} onSubmit={handleUpdate} onClose={() => setModal(null)} />
         </Modal>
+      )}
+      {lifecycleCompany && (
+        <CompanyDeleteModal
+          company={lifecycleCompany}
+          onCancel={() => setLifecycleCompany(null)}
+          onArchive={() => handleArchive(lifecycleCompany)}
+          onHardDelete={() => handleHardDelete(lifecycleCompany)}
+        />
       )}
     </div>
   );

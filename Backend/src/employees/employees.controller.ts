@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('Employees')
@@ -43,7 +44,16 @@ export class EmployeesController {
   create(@Body() dto: CreateEmployeeDto) { return this.service.create(dto); }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: CreateEmployeeDto) { return this.service.update(+id, dto); }
+  update(@Param('id') id: string, @Body() dto: UpdateEmployeeDto) { return this.service.update(+id, dto); }
+
+  @Patch(':id/toggle-status')
+  toggleStatus(@Param('id') id: string) { return this.service.toggleStatus(+id); }
+
+  @Patch(':id/activate')
+  activate(@Param('id') id: string) { return this.service.setStatus(+id, 'active' as any); }
+
+  @Patch(':id/deactivate')
+  deactivate(@Param('id') id: string) { return this.service.setStatus(+id, 'inactive' as any); }
 
   @Delete(':id')
   remove(@Param('id') id: string) { return this.service.remove(+id); }
