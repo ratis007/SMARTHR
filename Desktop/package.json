@@ -1,0 +1,25 @@
+{
+  "name": "smarthr-desktop",
+  "version": "1.0.0",
+  "description": "SmartHR Desktop App (Electron)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "electron": "^28.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.smarthr.app",
+    "productName": "SmartHR",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js"],
+    "win": { "target": "nsis" },
+    "linux": { "target": "AppImage" },
+    "mac": { "target": "dmg" }
+  }
+}
