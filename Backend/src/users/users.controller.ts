@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -37,6 +37,12 @@ export class UsersController {
   @RequirePermissions('audit:read')
   findAuditLogs(@Query('userId') userId?: string) {
     return this.service.findAuditLogs(userId ? +userId : undefined);
+  }
+
+  @Delete('audit-logs/:id')
+  @RequirePermissions('audit:write')
+  removeAuditLog(@Param('id') id: string, @Req() req: any) {
+    return this.service.removeAuditLog(+id, req.user, req.ip);
   }
 
   @Get(':id')

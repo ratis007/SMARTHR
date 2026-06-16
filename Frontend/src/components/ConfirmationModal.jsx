@@ -6,6 +6,7 @@ export default function ConfirmationModal({
   confirmLabel = 'Confirmer',
   cancelLabel = 'Annuler',
   tone = 'danger',
+  confirmDisabled = false,
   onConfirm,
   onCancel,
 }) {
@@ -18,7 +19,7 @@ export default function ConfirmationModal({
       <div className="space-y-4">
         <p className="text-sm leading-6 text-gray-600">{message}</p>
         <div className="flex gap-3">
-          <button type="button" className={buttonClass} onClick={onConfirm}>{confirmLabel}</button>
+          <button type="button" className={`${buttonClass} disabled:opacity-60 disabled:cursor-not-allowed`} onClick={onConfirm} disabled={confirmDisabled}>{confirmLabel}</button>
           <button type="button" className="btn-secondary flex-1" onClick={onCancel}>{cancelLabel}</button>
         </div>
       </div>

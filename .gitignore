@@ -4,3 +4,4 @@ node_modules_*/
 dist/
 .runtime-logs/
 .env
+Backend/uploads/

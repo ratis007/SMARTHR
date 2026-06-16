@@ -74,6 +74,24 @@ export const employeesApi = {
   delete: (id) => api.delete(`/employees/${id}`),
 };
 
+export const employeeDocumentsApi = {
+  config: (employeeId) => api.get(`/employees/${employeeId}/documents/config`),
+  list: (employeeId) => api.get(`/employees/${employeeId}/documents`),
+  upload: (employeeId, data) => api.post(`/employees/${employeeId}/documents`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  replace: (employeeId, documentId, data) => api.put(`/employees/${employeeId}/documents/${documentId}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  download: (employeeId, documentId) => api.get(`/employees/${employeeId}/documents/${documentId}/download`, {
+    responseType: 'blob',
+  }),
+  exportZip: (employeeId) => api.get(`/employees/${employeeId}/documents/export`, {
+    responseType: 'blob',
+  }),
+  delete: (employeeId, documentId) => api.delete(`/employees/${employeeId}/documents/${documentId}`),
+};
+
 export const contractsApi = {
   getAll: (companyId) => api.get('/contracts', { params: { ...(companyId ? { companyId } : {}) } }),
   getOne: (id) => api.get(`/contracts/${id}`),
@@ -91,6 +109,54 @@ export const payrollApi = {
   getOne: (id) => api.get(`/payroll/${id}`),
   getSummary: (month, year, companyId) => api.get('/payroll/summary', { params: { month, year, ...(companyId ? { companyId } : {}) } }),
   generate: (data) => api.post('/payroll/generate', data),
+  generateBatch: (data, companyId) => api.post('/payroll/generate-batch', data, { params: companyId ? { companyId } : {} }),
+  getJob: (id) => api.get(`/payroll/jobs/${id}`),
+  cancelJob: (id) => api.post(`/payroll/jobs/${id}/cancel`),
+  payslip: (id) => api.get(`/payroll/${id}/payslip`, { responseType: 'blob' }),
+  exportJournal: (month, year, companyId) => api.get('/payroll/journal/export', {
+    params: { month, year, ...(companyId ? { companyId } : {}) },
+    responseType: 'blob',
+  }),
+  exportJournalExcel: (month, year, companyId) => api.get('/payroll/journal/export-excel', {
+    params: { month, year, ...(companyId ? { companyId } : {}) },
+    responseType: 'blob',
+  }),
+  exportBookExcel: (month, year, companyId) => api.get('/payroll/book/export-excel', {
+    params: { month, year, ...(companyId ? { companyId } : {}) },
+    responseType: 'blob',
+  }),
+  auditTrail: (month, year, companyId) => api.get('/payroll/audit-trail', {
+    params: { month, year, ...(companyId ? { companyId } : {}) },
+  }),
+  preview: (data) => api.post('/payroll/engine/preview', data),
+  configuration: (companyId) => api.get('/payroll/engine/configuration', { params: companyId ? { companyId } : {} }),
+  createRubric: (data, companyId) => api.post('/payroll/engine/rubrics', data, { params: companyId ? { companyId } : {} }),
+  createLegalRate: (data, companyId) => api.post('/payroll/engine/legal-rates', data, { params: companyId ? { companyId } : {} }),
+  createIprBracket: (data, companyId) => api.post('/payroll/engine/ipr-brackets', data, { params: companyId ? { companyId } : {} }),
+  periodStatus: (month, year, companyId) => api.get('/payroll/period/status', { params: { month, year, ...(companyId ? { companyId } : {}) } }),
+  closePeriod: (data, companyId) => api.post('/payroll/period/close', data, { params: companyId ? { companyId } : {} }),
+  reopenPeriod: (data, companyId) => api.post('/payroll/period/reopen', data, { params: companyId ? { companyId } : {} }),
+  variables: (params) => api.get('/payroll/variables', { params }),
+  createVariable: (data, companyId) => api.post('/payroll/variables', data, { params: companyId ? { companyId } : {} }),
+  importVariablesCsv: (file, month, year, companyId) => {
+    const data = new FormData();
+    data.append('file', file);
+    return api.post('/payroll/variables/import-csv', data, {
+      params: { month, year, ...(companyId ? { companyId } : {}) },
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  timeInputs: (params) => api.get('/payroll/time-inputs', { params }),
+  createTimeInput: (data, companyId) => api.post('/payroll/time-inputs', data, { params: companyId ? { companyId } : {} }),
+  importTimeInputsCsv: (file, month, year, companyId) => {
+    const data = new FormData();
+    data.append('file', file);
+    return api.post('/payroll/time-inputs/import-csv', data, {
+      params: { month, year, ...(companyId ? { companyId } : {}) },
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  workflow: (id, status) => api.put(`/payroll/${id}/workflow/${status}`),
   update: (id, data) => api.put(`/payroll/${id}`, data),
   validate: (id) => api.put(`/payroll/${id}/validate`),
   toggleStatus: (id) => api.patch(`/payroll/${id}/toggle-status`),
@@ -126,6 +192,7 @@ export const usersApi = {
   updateRole: (id, data) => api.put(`/users/roles/${id}`, data),
   permissions: () => api.get('/users/permissions'),
   auditLogs: (userId) => api.get('/users/audit-logs', { params: userId ? { userId } : {} }),
+  deleteAuditLog: (id) => api.delete(`/users/audit-logs/${id}`),
 };
 
 export const platformSettingsApi = {

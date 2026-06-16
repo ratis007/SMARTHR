@@ -10,6 +10,7 @@ import { LeaveModule } from './leave/leave.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { ReportsModule } from './reports/reports.module';
 import { SettingsModule } from './settings/settings.module';
+import { EmployeeDocumentsModule } from './employee-documents/employee-documents.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { SettingsModule } from './settings/settings.module';
     PayrollModule,
     LeaveModule,
     ContractsModule,
+    EmployeeDocumentsModule,
     ReportsModule,
     SettingsModule,
   ],

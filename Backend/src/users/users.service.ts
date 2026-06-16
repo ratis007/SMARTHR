@@ -130,6 +130,38 @@ export class UsersService {
     });
   }
 
+  async removeAuditLog(id: number, currentUser?: any, ipAddress?: string) {
+    const log = await this.auditRepo.findOne({ where: { id } });
+    if (!log) throw new NotFoundException("Element d'historique introuvable");
+
+    const deletedLog = {
+      id: log.id,
+      userId: log.userId,
+      action: log.action,
+      entity: log.entity,
+      entityId: log.entityId,
+      details: log.details,
+      createdAt: log.createdAt,
+    };
+    const employeeId = this.resolveEmployeeId(log);
+
+    await this.auditRepo.delete(id);
+    await this.auditRepo.save(this.auditRepo.create({
+      userId: currentUser?.id || null,
+      action: 'audit_logs:delete',
+      entity: 'audit_logs',
+      entityId: id,
+      ipAddress,
+      details: {
+        employeeId,
+        deletedAt: new Date().toISOString(),
+        deletedLog,
+      },
+    }));
+
+    return { message: "Element d'historique supprime" };
+  }
+
   private async resolveRoles(roleIds?: number[]) {
     if (!roleIds?.length) return [];
     return this.rolesRepo.find({ where: { id: In(roleIds) } });
@@ -137,5 +169,12 @@ export class UsersService {
 
   private audit(userId: number | null, action: string, entity: string, entityId: number, details: any) {
     return this.auditRepo.save(this.auditRepo.create({ userId, action, entity, entityId, details }));
+  }
+
+  private resolveEmployeeId(log: AuditLog) {
+    if (log.entity === 'employees') return log.entityId;
+    const details = log.details || {};
+    const value = details.employeeId || details.employee_id;
+    return value ? Number(value) : null;
   }
 }

@@ -28,12 +28,12 @@ export class SeedService implements OnApplicationBootstrap {
       companies: ['read', 'write'],
       employees: ['read', 'write'],
       contracts: ['read', 'write'],
-      payroll: ['read', 'write'],
+      payroll: ['read', 'write', 'generate', 'update', 'validate', 'close', 'export', 'configure', 'input', 'import'],
       leave: ['read', 'write', 'approve'],
       reports: ['read'],
       settings: ['read', 'write'],
       currency: ['read', 'write'],
-      audit: ['read'],
+      audit: ['read', 'write'],
     };
     for (const [module, actions] of Object.entries(modules)) {
       for (const action of actions) {
@@ -53,8 +53,25 @@ export class SeedService implements OnApplicationBootstrap {
       { name: 'agent', description: 'Agent', perms: ['employees:read', 'employees:write', 'leave:read', 'leave:write'] },
       { name: 'company', description: 'Entreprise', perms: ['employees:read', 'contracts:read', 'payroll:read', 'leave:read', 'reports:read', 'settings:read'] },
       { name: 'support_tech', description: 'Support Technique', perms: ['users:read', 'companies:read', 'settings:read', 'audit:read'] },
-      { name: 'rh_manager', description: 'Responsable RH', perms: ['employees:read', 'employees:write', 'leave:read', 'leave:write', 'leave:approve', 'contracts:read', 'reports:read'] },
-      { name: 'accountant', description: 'Comptable / Paie', perms: ['payroll:read', 'payroll:write', 'employees:read', 'reports:read'] },
+      { name: 'rh_manager', description: 'Responsable RH', perms: ['employees:read', 'employees:write', 'leave:read', 'leave:write', 'leave:approve', 'contracts:read', 'reports:read', 'audit:read', 'audit:write'] },
+      {
+        name: 'accountant',
+        description: 'Comptable / Paie',
+        perms: [
+          'payroll:read',
+          'payroll:write',
+          'payroll:generate',
+          'payroll:update',
+          'payroll:validate',
+          'payroll:close',
+          'payroll:export',
+          'payroll:configure',
+          'payroll:input',
+          'payroll:import',
+          'employees:read',
+          'reports:read',
+        ],
+      },
       { name: 'employee', description: 'Employe standard', perms: ['leave:read', 'leave:write'] },
     ];
 

@@ -5,10 +5,12 @@ import { PayrollController } from './payroll.controller';
 import { Payroll } from './payroll.entity';
 import { PayrollDetail } from './payroll-detail.entity';
 import { Employee } from '../employees/employee.entity';
+import { PayrollEngineService } from './payroll-engine.service';
+import { AuditLog } from '../users/audit-log.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Payroll, PayrollDetail, Employee])],
-  providers: [PayrollService],
+  imports: [TypeOrmModule.forFeature([Payroll, PayrollDetail, Employee, AuditLog])],
+  providers: [PayrollService, PayrollEngineService],
   controllers: [PayrollController],
 })
 export class PayrollModule {}

@@ -44,7 +44,13 @@ export class EmployeesService {
       this.dataSource.query('SELECT * FROM payrolls WHERE employee_id = $1 ORDER BY year DESC, month DESC, created_at DESC', [id]),
       this.dataSource.query('SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY start_date DESC, created_at DESC', [id]),
       this.safeQuery('SELECT * FROM employee_documents WHERE employee_id = $1 ORDER BY created_at DESC', [id]),
-      this.safeQuery("SELECT * FROM audit_logs WHERE entity = 'employees' AND entity_id = $1 ORDER BY created_at DESC LIMIT 100", [id]),
+      this.safeQuery(`
+        SELECT * FROM audit_logs
+        WHERE (entity = 'employees' AND entity_id = $1)
+           OR (entity = 'employee_documents' AND details->>'employeeId' = $1::text)
+        ORDER BY created_at DESC
+        LIMIT 100
+      `, [id]),
     ]);
 
     const approvedLeaveDays = leaves
@@ -175,10 +181,16 @@ export class EmployeesService {
     return {
       id: row.id,
       employeeId: row.employee_id,
-      name: row.name,
-      type: row.type,
+      documentType: row.document_type || row.type,
+      type: row.document_type || row.type,
+      fileName: row.file_name || row.name,
+      name: row.file_name || row.name,
       filePath: row.file_path,
+      fileSize: row.file_size ? Number(row.file_size) : 0,
+      mimeType: row.mime_type,
+      uploadedBy: row.uploaded_by,
       createdAt: row.created_at,
+      updatedAt: row.updated_at,
     };
   }
 

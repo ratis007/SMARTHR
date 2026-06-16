@@ -5,7 +5,15 @@ import {
 import { Employee } from '../employees/employee.entity';
 import { PayrollDetail } from './payroll-detail.entity';
 
-export enum PayrollStatus { DRAFT = 'draft', VALIDATED = 'validated', PAID = 'paid', ARCHIVED = 'archived' }
+export enum PayrollStatus {
+  DRAFT = 'draft',
+  PREPARATION = 'preparation',
+  REVIEW = 'review',
+  VALIDATED = 'validated',
+  CLOSED = 'closed',
+  PAID = 'paid',
+  ARCHIVED = 'archived',
+}
 
 @Entity('payrolls')
 @Unique(['employeeId', 'month', 'year']) // Bug 1 fix: empêche double paie
@@ -35,8 +43,32 @@ export class Payroll {
   @Column({ name: 'total_deductions', type: 'decimal', precision: 15, scale: 2, default: 0 })
   totalDeductions: number;
 
+  @Column({ name: 'gross_salary', type: 'decimal', precision: 15, scale: 2, default: 0 })
+  grossSalary: number;
+
+  @Column({ name: 'taxable_salary', type: 'decimal', precision: 15, scale: 2, default: 0 })
+  taxableSalary: number;
+
+  @Column({ name: 'net_fiscal', type: 'decimal', precision: 15, scale: 2, default: 0 })
+  netFiscal: number;
+
+  @Column({ name: 'employer_contributions', type: 'decimal', precision: 15, scale: 2, default: 0 })
+  employerContributions: number;
+
   @Column({ name: 'net_salary', type: 'decimal', precision: 15, scale: 2, default: 0 })
   netSalary: number;
+
+  @Column({ default: 'CDF' })
+  currency: string;
+
+  @Column({ name: 'exchange_rate', type: 'decimal', precision: 15, scale: 4, default: 1 })
+  exchangeRate: number;
+
+  @Column({ name: 'workflow_step', default: 'draft' })
+  workflowStep: string;
+
+  @Column({ name: 'calculation_snapshot', type: 'jsonb', nullable: true })
+  calculationSnapshot: any;
 
   @Column({ type: 'enum', enum: PayrollStatus, default: PayrollStatus.DRAFT })
   status: PayrollStatus;
