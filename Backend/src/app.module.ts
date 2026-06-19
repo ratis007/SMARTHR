@@ -11,6 +11,7 @@ import { ContractsModule } from './contracts/contracts.module';
 import { ReportsModule } from './reports/reports.module';
 import { SettingsModule } from './settings/settings.module';
 import { EmployeeDocumentsModule } from './employee-documents/employee-documents.module';
+import { TimeAttendanceModule } from './time-attendance/time-attendance.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { EmployeeDocumentsModule } from './employee-documents/employee-documents
     LeaveModule,
     ContractsModule,
     EmployeeDocumentsModule,
+    TimeAttendanceModule,
     ReportsModule,
     SettingsModule,
   ],

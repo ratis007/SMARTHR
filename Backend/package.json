@@ -4,8 +4,11 @@
   "description": "SmartHR & Payroll - Backend API (NestJS)",
   "scripts": {
     "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
+    "db:test:payroll": "node scripts/prepare-payroll-api-test-db.js",
     "test:payroll": "node node_modules/ts-node/dist/bin.js tests/payroll-engine.spec.ts",
+    "test:time-attendance": "node node_modules/ts-node/dist/bin.js tests/time-attendance-engine.spec.ts",
     "test:payroll:api": "node node_modules/ts-node/dist/bin.js tests/payroll-api.integration.ts",
+    "start:test:payroll-api": "node scripts/start-payroll-api-test-server.js",
     "start": "node dist/main",
     "start:dev": "node node_modules/ts-node/dist/bin.js src/main.ts",
     "start:prod": "node dist/main"
@@ -20,9 +23,11 @@
     "@nestjs/swagger": "^7.0.0",
     "@nestjs/typeorm": "^10.0.2",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.78.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "dotenv": "^16.3.1",
+    "exceljs": "^4.4.0",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",

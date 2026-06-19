@@ -113,6 +113,10 @@ export const payrollApi = {
   getJob: (id) => api.get(`/payroll/jobs/${id}`),
   cancelJob: (id) => api.post(`/payroll/jobs/${id}/cancel`),
   payslip: (id) => api.get(`/payroll/${id}/payslip`, { responseType: 'blob' }),
+  payslipExcel: (id) => api.get(`/payroll/${id}/payslip-excel`, { responseType: 'blob' }),
+  archivePayslip: (id) => api.post(`/payroll/${id}/archive-payslip`),
+  payrollDocuments: (id) => api.get(`/payroll/${id}/documents`),
+  downloadPayrollDocument: (id, documentId) => api.get(`/payroll/${id}/documents/${documentId}/download`, { responseType: 'blob' }),
   exportJournal: (month, year, companyId) => api.get('/payroll/journal/export', {
     params: { month, year, ...(companyId ? { companyId } : {}) },
     responseType: 'blob',
@@ -121,7 +125,15 @@ export const payrollApi = {
     params: { month, year, ...(companyId ? { companyId } : {}) },
     responseType: 'blob',
   }),
+  exportJournalXlsx: (month, year, companyId) => api.get('/payroll/journal/export-xlsx', {
+    params: { month, year, ...(companyId ? { companyId } : {}) },
+    responseType: 'blob',
+  }),
   exportBookExcel: (month, year, companyId) => api.get('/payroll/book/export-excel', {
+    params: { month, year, ...(companyId ? { companyId } : {}) },
+    responseType: 'blob',
+  }),
+  exportBookXlsx: (month, year, companyId) => api.get('/payroll/book/export-xlsx', {
     params: { month, year, ...(companyId ? { companyId } : {}) },
     responseType: 'blob',
   }),
@@ -156,6 +168,14 @@ export const payrollApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  importTimeInputsExcel: (file, month, year, companyId) => {
+    const data = new FormData();
+    data.append('file', file);
+    return api.post('/payroll/time-inputs/import-excel', data, {
+      params: { month, year, ...(companyId ? { companyId } : {}) },
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   workflow: (id, status) => api.put(`/payroll/${id}/workflow/${status}`),
   update: (id, data) => api.put(`/payroll/${id}`, data),
   validate: (id) => api.put(`/payroll/${id}/validate`),
@@ -163,6 +183,38 @@ export const payrollApi = {
   activate: (id) => api.patch(`/payroll/${id}/activate`),
   deactivate: (id) => api.patch(`/payroll/${id}/deactivate`),
   delete: (id) => api.delete(`/payroll/${id}`),
+};
+
+export const timeAttendanceApi = {
+  configuration: (companyId) => api.get('/time-attendance/configuration', { params: companyId ? { companyId } : {} }),
+  dashboard: (companyId, date) => api.get('/time-attendance/dashboard', { params: { ...(companyId ? { companyId } : {}), ...(date ? { date } : {}) } }),
+  analytics: (params) => api.get('/time-attendance/analytics', { params }),
+  days: (params) => api.get('/time-attendance/days', { params }),
+  createWorkProfile: (data, companyId) => api.post('/time-attendance/work-profiles', data, { params: companyId ? { companyId } : {} }),
+  createHoliday: (data, companyId) => api.post('/time-attendance/holidays', data, { params: companyId ? { companyId } : {} }),
+  createTeam: (data, companyId) => api.post('/time-attendance/teams', data, { params: companyId ? { companyId } : {} }),
+  createRotation: (data, companyId) => api.post('/time-attendance/rotations', data, { params: companyId ? { companyId } : {} }),
+  assignWorkProfile: (data, companyId) => api.post('/time-attendance/assignments', data, { params: companyId ? { companyId } : {} }),
+  createClockEvent: (data, companyId) => api.post('/time-attendance/clock-events', data, { params: companyId ? { companyId } : {} }),
+  importClockEvents: (data, companyId) => api.post('/time-attendance/clock-events/import', data, { params: companyId ? { companyId } : {} }),
+  calculate: (data, companyId) => api.post('/time-attendance/days/calculate', data, { params: companyId ? { companyId } : {} }),
+  calculateAsync: (data, companyId) => api.post('/time-attendance/days/calculate/async', data, { params: companyId ? { companyId } : {} }),
+  schedule: (params) => api.get('/time-attendance/schedule', { params }),
+  generateSchedule: (data, companyId) => api.post('/time-attendance/schedule/generate', data, { params: companyId ? { companyId } : {} }),
+  updateScheduleEntry: (id, data, companyId) => api.post(`/time-attendance/schedule/${id}`, data, { params: companyId ? { companyId } : {} }),
+  alerts: (params) => api.get('/time-attendance/alerts', { params }),
+  detectAlerts: (data, companyId) => api.post('/time-attendance/alerts/detect', data, { params: companyId ? { companyId } : {} }),
+  detectAlertsAsync: (data, companyId) => api.post('/time-attendance/alerts/detect/async', data, { params: companyId ? { companyId } : {} }),
+  updateAlert: (id, data, companyId) => api.post(`/time-attendance/alerts/${id}/status`, data, { params: companyId ? { companyId } : {} }),
+  notificationOutbox: (params) => api.get('/time-attendance/notifications/outbox', { params }),
+  dispatchNotifications: (data, companyId) => api.post('/time-attendance/notifications/dispatch', data, { params: companyId ? { companyId } : {} }),
+  dispatchNotificationsAsync: (data, companyId) => api.post('/time-attendance/notifications/dispatch/async', data, { params: companyId ? { companyId } : {} }),
+  retryNotification: (id, companyId) => api.post(`/time-attendance/notifications/${id}/retry`, {}, { params: companyId ? { companyId } : {} }),
+  jobs: (params) => api.get('/time-attendance/jobs', { params }),
+  job: (id, companyId) => api.get(`/time-attendance/jobs/${id}`, { params: companyId ? { companyId } : {} }),
+  cancelJob: (id, companyId) => api.post(`/time-attendance/jobs/${id}/cancel`, {}, { params: companyId ? { companyId } : {} }),
+  workflow: (id, status, companyId) => api.post(`/time-attendance/days/${id}/workflow/${status}`, {}, { params: companyId ? { companyId } : {} }),
+  exportPayroll: (data, companyId) => api.post('/time-attendance/payroll/export', data, { params: companyId ? { companyId } : {} }),
 };
 
 export const leaveApi = {

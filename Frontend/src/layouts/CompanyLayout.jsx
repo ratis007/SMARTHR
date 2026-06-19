@@ -5,13 +5,13 @@ import Logo from '../components/Logo';
 import {
   HomeIcon, UsersIcon, DocumentTextIcon, BanknotesIcon,
   CalendarDaysIcon, ChartBarIcon, Cog6ToothIcon, ArrowLeftIcon,
-  BuildingOfficeIcon,
+  BuildingOfficeIcon, ClockIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid, UsersIcon as UsersIconSolid,
   DocumentTextIcon as DocIconSolid, BanknotesIcon as BankIconSolid,
   CalendarDaysIcon as CalIconSolid, ChartBarIcon as ChartIconSolid,
-  Cog6ToothIcon as CogIconSolid,
+  Cog6ToothIcon as CogIconSolid, ClockIcon as ClockIconSolid,
 } from '@heroicons/react/24/solid';
 
 const NAV_ITEMS = [
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { key: 'employees',  label: 'Employés',         icon: UsersIcon,         iconSolid: UsersIconSolid },
   { key: 'contracts',  label: 'Contrats',          icon: DocumentTextIcon,  iconSolid: DocIconSolid },
   { key: 'payroll',    label: 'Paie',              icon: BanknotesIcon,     iconSolid: BankIconSolid },
+  { key: 'time-attendance', label: 'Temps',         icon: ClockIcon,         iconSolid: ClockIconSolid },
   { key: 'leave',      label: 'Congés',            icon: CalendarDaysIcon,  iconSolid: CalIconSolid },
   { key: 'reports',    label: 'Rapports',          icon: ChartBarIcon,      iconSolid: ChartIconSolid },
   { key: 'settings',   label: 'Paramètres',        icon: Cog6ToothIcon,     iconSolid: CogIconSolid },

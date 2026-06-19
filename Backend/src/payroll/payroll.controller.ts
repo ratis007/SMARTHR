@@ -17,8 +17,14 @@ import { PayrollPeriodDto } from './dto/payroll-period.dto';
 const payrollCsvUpload = {
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (_req: any, file: any, cb: any) => {
-    const allowed = ['text/csv', 'application/vnd.ms-excel', 'text/plain', 'application/octet-stream'];
-    const nameOk = /\.(csv|txt)$/i.test(file.originalname || '');
+    const allowed = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain',
+      'application/octet-stream',
+    ];
+    const nameOk = /\.(csv|txt|xlsx)$/i.test(file.originalname || '');
     cb(null, allowed.includes(file.mimetype) || nameOk);
   },
 };
@@ -249,6 +255,22 @@ export class PayrollController {
     return this.service.importTimeInputsCsv(companyId || null, +month, +year, file.buffer, req.user?.id, req.ip);
   }
 
+  @Post('time-inputs/import-excel')
+  @RequireAnyPermissions('payroll:import', 'payroll:input', 'payroll:write')
+  @UseInterceptors(FileInterceptor('file', payrollCsvUpload))
+  importTimeInputsExcel(
+    @UploadedFile() file: any,
+    @Req() req: any,
+    @Query('month') month: string,
+    @Query('year') year: string,
+    @Query('companyId') queryCompanyId?: string,
+    @CompanyId() headerCompanyId?: number,
+  ) {
+    if (!file?.buffer) throw new BadRequestException('Fichier Excel requis');
+    const companyId = queryCompanyId ? +queryCompanyId : headerCompanyId;
+    return this.service.importTimeInputsExcel(companyId || null, +month, +year, file.buffer, req.user?.id, req.ip);
+  }
+
   @Post('generate')
   @RequireAnyPermissions('payroll:generate', 'payroll:write')
   generate(@Body() dto: CreatePayrollDto, @Req() req: any) { return this.service.generate(dto, req.user, req.ip); }
@@ -303,6 +325,22 @@ export class PayrollController {
     res.send(xml);
   }
 
+  @Get('journal/export-xlsx')
+  @RequireAnyPermissions('payroll:export', 'payroll:read')
+  async exportJournalXlsx(
+    @Query('month') month: string,
+    @Query('year') year: string,
+    @Query('companyId') queryCompanyId: string,
+    @CompanyId() headerCompanyId: number,
+    @Res() res: Response,
+  ) {
+    const companyId = queryCompanyId ? +queryCompanyId : headerCompanyId;
+    const buffer = await this.service.generatePayrollJournalXlsx(+month, +year, companyId);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="journal-paie-${month}-${year}.xlsx"`);
+    res.send(buffer);
+  }
+
   @Get('book/export-excel')
   @RequireAnyPermissions('payroll:export', 'payroll:read')
   async exportPayrollBookExcel(
@@ -317,6 +355,22 @@ export class PayrollController {
     res.setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="livre-paie-${month}-${year}.xls"`);
     res.send(xml);
+  }
+
+  @Get('book/export-xlsx')
+  @RequireAnyPermissions('payroll:export', 'payroll:read')
+  async exportPayrollBookXlsx(
+    @Query('month') month: string,
+    @Query('year') year: string,
+    @Query('companyId') queryCompanyId: string,
+    @CompanyId() headerCompanyId: number,
+    @Res() res: Response,
+  ) {
+    const companyId = queryCompanyId ? +queryCompanyId : headerCompanyId;
+    const buffer = await this.service.generatePayrollBookXlsx(+month, +year, companyId);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="livre-paie-${month}-${year}.xlsx"`);
+    res.send(buffer);
   }
 
   @Get('audit-trail')
@@ -347,6 +401,39 @@ export class PayrollController {
     const html = await this.service.generatePayslipHtml(+id);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
+  }
+
+  @Get(':id/payslip-excel')
+  @RequireAnyPermissions('payroll:export', 'payroll:read')
+  async payslipExcel(@Param('id') id: string, @Res() res: Response) {
+    const buffer = await this.service.generatePayslipExcel(+id);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="bulletin-paie-${id}.xlsx"`);
+    res.send(buffer);
+  }
+
+  @Post(':id/archive-payslip')
+  @RequireAnyPermissions('payroll:validate', 'payroll:export', 'payroll:write')
+  archivePayslip(@Param('id') id: string, @Req() req: any) {
+    return this.service.archivePayslip(+id, req.user, req.ip);
+  }
+
+  @Get(':id/documents')
+  @RequireAnyPermissions('payroll:export', 'payroll:read')
+  listPayrollDocuments(@Param('id') id: string) {
+    return this.service.listPayrollDocuments(+id);
+  }
+
+  @Get(':id/documents/:documentId/download')
+  @RequireAnyPermissions('payroll:export', 'payroll:read')
+  async downloadPayrollDocument(
+    @Param('id') id: string,
+    @Param('documentId') documentId: string,
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
+    const { document, absolutePath } = await this.service.downloadPayrollDocument(+id, +documentId, req.user, req.ip);
+    res.download(absolutePath, document.fileName);
   }
 
   @Put(':id')

@@ -527,6 +527,7 @@ export default function CompanyPayroll() {
   const pendingPayrollRef = useRef(null);
   const variableImportRef = useRef(null);
   const timeImportRef = useRef(null);
+  const timeExcelImportRef = useRef(null);
 
   const loadCurrency = async () => {
     if (!companyId) return;
@@ -704,6 +705,16 @@ export default function CompanyPayroll() {
     }
   };
 
+  const handleExportJournalXlsx = async () => {
+    try {
+      const { data } = await payrollApi.exportJournalXlsx(month, year, companyId);
+      saveBlob(data, `journal-paie-${month}-${year}.xlsx`);
+      toast.success('Journal XLSX exporte');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Export XLSX impossible');
+    }
+  };
+
   const handleExportBookExcel = async () => {
     try {
       const { data } = await payrollApi.exportBookExcel(month, year, companyId);
@@ -711,6 +722,16 @@ export default function CompanyPayroll() {
       toast.success('Livre de paie exporte');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Export du livre impossible');
+    }
+  };
+
+  const handleExportBookXlsx = async () => {
+    try {
+      const { data } = await payrollApi.exportBookXlsx(month, year, companyId);
+      saveBlob(data, `livre-paie-${month}-${year}.xlsx`);
+      toast.success('Livre XLSX exporte');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Export du livre XLSX impossible');
     }
   };
 
@@ -780,12 +801,50 @@ export default function CompanyPayroll() {
     }
   };
 
+  const handleImportTimeInputsExcel = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (isPeriodClosed) {
+      toast.error('Cette periode de paie est cloturee');
+      return;
+    }
+    try {
+      const { data } = await payrollApi.importTimeInputsExcel(file, month, year, companyId);
+      toast.success(`${data.success} saisie(s) Excel importee(s), ${data.failed} erreur(s)`);
+      if (data.errors?.length) console.warn('[Payroll time Excel import]', data.errors);
+      await load(month, year);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Import Excel pointeuse impossible');
+    }
+  };
+
   const handlePayslip = async (payroll) => {
     try {
       const { data } = await payrollApi.payslip(payroll.id);
       openBlob(data);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Bulletin indisponible');
+    }
+  };
+
+  const handlePayslipExcel = async (payroll) => {
+    try {
+      const { data } = await payrollApi.payslipExcel(payroll.id);
+      saveBlob(data, `bulletin-paie-${payroll.id}.xlsx`);
+      toast.success('Bulletin Excel telecharge');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulletin Excel indisponible');
+    }
+  };
+
+  const handleArchivePayslip = async (payroll) => {
+    try {
+      await payrollApi.archivePayslip(payroll.id);
+      toast.success('Bulletin archive et signe');
+      await load(month, year);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Archivage du bulletin impossible');
     }
   };
 
@@ -882,6 +941,7 @@ export default function CompanyPayroll() {
     <div className="space-y-6 animate-fade-in">
       <input ref={variableImportRef} type="file" accept=".csv,text/csv,text/plain" className="hidden" onChange={handleImportVariables} />
       <input ref={timeImportRef} type="file" accept=".csv,text/csv,text/plain" className="hidden" onChange={handleImportTimeInputs} />
+      <input ref={timeExcelImportRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={handleImportTimeInputsExcel} />
 
       <div className="page-header">
         <div>
@@ -891,7 +951,9 @@ export default function CompanyPayroll() {
         <div className="flex flex-wrap gap-2">
           <button onClick={handleExportJournal} className="btn-secondary flex items-center gap-2"><ArrowDownTrayIcon className="w-4 h-4" /> CSV</button>
           <button onClick={handleExportJournalExcel} className="btn-secondary flex items-center gap-2"><ArrowDownTrayIcon className="w-4 h-4" /> Journal Excel</button>
+          <button onClick={handleExportJournalXlsx} className="btn-secondary flex items-center gap-2"><ArrowDownTrayIcon className="w-4 h-4" /> Journal XLSX</button>
           <button onClick={handleExportBookExcel} className="btn-secondary flex items-center gap-2"><ArrowDownTrayIcon className="w-4 h-4" /> Livre Excel</button>
+          <button onClick={handleExportBookXlsx} className="btn-secondary flex items-center gap-2"><ArrowDownTrayIcon className="w-4 h-4" /> Livre XLSX</button>
           <button disabled={isPeriodClosed} onClick={() => setVariableModal(true)} className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">Ajouter variable</button>
           <button disabled={isPeriodClosed} onClick={() => setTimeModal(true)} className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">Temps / presence</button>
           <button disabled={isPeriodClosed} onClick={handleBatchGenerate} className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">Generation collective</button>
@@ -1059,6 +1121,14 @@ export default function CompanyPayroll() {
             >
               Import CSV
             </button>
+            <button
+              type="button"
+              disabled={isPeriodClosed}
+              className="btn-secondary py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => timeExcelImportRef.current?.click()}
+            >
+              Import XLSX
+            </button>
           </div>
         </div>
         {timeInputs.length === 0 ? (
@@ -1186,6 +1256,12 @@ export default function CompanyPayroll() {
                           </button>
                         )}
                         <button type="button" title="Bulletin" onClick={() => handlePayslip(p)} className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors">
+                          <DocumentTextIcon className="w-4 h-4" />
+                        </button>
+                        <button type="button" title="Bulletin Excel" onClick={() => handlePayslipExcel(p)} className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors">
+                          <ArrowDownTrayIcon className="w-4 h-4" />
+                        </button>
+                        <button type="button" title="Archiver et signer" onClick={() => handleArchivePayslip(p)} className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors">
                           <DocumentTextIcon className="w-4 h-4" />
                         </button>
                         {!isPeriodClosed && (

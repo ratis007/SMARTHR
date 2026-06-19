@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import * as ExcelJS from 'exceljs';
+import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Payroll, PayrollStatus } from './payroll.entity';
 import { DetailType, PayrollDetail } from './payroll-detail.entity';
 import { Employee } from '../employees/employee.entity';
@@ -11,16 +15,29 @@ import { CreateIprBracketDto, CreateLegalRateDto, CreatePayrollRubricDto, Create
 import { AuditLog } from '../users/audit-log.entity';
 import { GeneratePayrollBatchDto } from './dto/payroll-batch.dto';
 import { PayrollPeriodDto } from './dto/payroll-period.dto';
+import { PayrollBatchQueueService } from './payroll-batch-queue.service';
 
 @Injectable()
 export class PayrollService {
+  private readonly payrollDocumentRoot = path.resolve(process.env.PAYROLL_DOCUMENT_STORAGE_PATH || path.join(process.cwd(), 'uploads', 'payroll-documents'));
+
   constructor(
     @InjectRepository(Payroll) private repo: Repository<Payroll>,
     @InjectRepository(Employee) private empRepo: Repository<Employee>,
     @InjectRepository(AuditLog) private auditRepo: Repository<AuditLog>,
     private engine: PayrollEngineService,
     private dataSource: DataSource,
-  ) {}
+    private batchQueue: PayrollBatchQueueService,
+  ) {
+    this.batchQueue.registerProcessor((payload) => this.processBatchJob(
+      payload.jobId,
+      payload.employeeIds,
+      payload.dto,
+      payload.user,
+      payload.ipAddress,
+    ));
+    fs.mkdirSync(this.payrollDocumentRoot, { recursive: true });
+  }
 
   findAll(month?: number, year?: number, page = 1, limit = 1000, companyId?: number) {
     const qb = this.repo.createQueryBuilder('p')
@@ -329,7 +346,23 @@ export class PayrollService {
     ]);
   }
 
+  async generatePayrollJournalXlsx(month: number, year: number, companyId?: number) {
+    return this.excelWorkbookBuffer([
+      { name: 'Journal de paie', rows: await this.getPayrollJournalRows(month, year, companyId) },
+    ]);
+  }
+
   async generatePayrollBookExcel(month: number, year: number, companyId?: number) {
+    const sheets = await this.getPayrollBookSheets(month, year, companyId);
+    return this.spreadsheetXml(sheets);
+  }
+
+  async generatePayrollBookXlsx(month: number, year: number, companyId?: number) {
+    const sheets = await this.getPayrollBookSheets(month, year, companyId);
+    return this.excelWorkbookBuffer(sheets);
+  }
+
+  private async getPayrollBookSheets(month: number, year: number, companyId?: number) {
     const payrolls = await this.findAll(month, year, 1, 10000, companyId);
     const departments = new Map<string, any>();
 
@@ -383,10 +416,130 @@ export class PayrollService {
       ],
     ];
 
-    return this.spreadsheetXml([
+    return [
       { name: 'Livre de paie', rows: summaryRows },
       { name: 'Journal detaille', rows: await this.getPayrollJournalRows(month, year, companyId) },
+    ];
+  }
+
+  async generatePayslipExcel(id: number) {
+    const payroll = await this.findOne(id);
+    const gains = (payroll.details || []).filter((detail) => detail.type === DetailType.ALLOWANCE && Number(detail.amount || 0) > 0);
+    const deductions = (payroll.details || []).filter((detail) => detail.type === DetailType.DEDUCTION && Number(detail.amount || 0) > 0);
+    const employer = (payroll.details || []).filter((detail) => Number(detail.employerAmount || 0) > 0);
+    const employee = payroll.employee;
+    const snapshot = payroll.calculationSnapshot || {};
+
+    const rows = [
+      ['Bulletin de paie', `${payroll.month}/${payroll.year}`],
+      ['Matricule', employee?.matricule || ''],
+      ['Employe', `${employee?.lastName || ''} ${employee?.firstName || ''}`.trim()],
+      ['Departement', employee?.department || ''],
+      ['Fonction', employee?.position || ''],
+      ['Statut', payroll.status || ''],
+      ['Devise', payroll.currency || 'CDF'],
+      ['Taux USD/CDF', Number(payroll.exchangeRate || 1)],
+      ['Version moteur', snapshot.version || 'legacy'],
+      [],
+      ['Gains'],
+      ['Code', 'Libelle', 'Taux', 'Montant CDF'],
+      ...gains.map((detail) => [detail.code || '', detail.label || '', Number(detail.rate || 0), Number(detail.amount || 0)]),
+      [],
+      ['Retenues employe'],
+      ['Code', 'Libelle', 'Taux', 'Montant CDF'],
+      ...deductions.map((detail) => [detail.code || '', detail.label || '', Number(detail.rate || 0), Number(detail.amount || 0)]),
+      [],
+      ['Charges employeur'],
+      ['Code', 'Libelle', 'Taux', 'Montant CDF'],
+      ...employer.map((detail) => [detail.code || '', detail.label || '', Number(detail.rate || 0), Number(detail.employerAmount || 0)]),
+      [],
+      ['Totaux'],
+      ['Salaire de base', Number(payroll.baseSalary || 0)],
+      ['Salaire brut', Number(payroll.grossSalary || Number(payroll.baseSalary) + Number(payroll.totalAllowances))],
+      ['Salaire imposable', Number(payroll.taxableSalary || 0)],
+      ['Retenues', Number(payroll.totalDeductions || 0)],
+      ['Charges employeur', Number(payroll.employerContributions || 0)],
+      ['Net fiscal', Number(payroll.netFiscal || 0)],
+      ['Net a payer', Number(payroll.netSalary || 0)],
+    ];
+
+    return this.excelWorkbookBuffer([{ name: 'Bulletin', rows }]);
+  }
+
+  async archivePayslip(id: number, user?: any, ipAddress?: string) {
+    const payroll = await this.findOne(id);
+    await this.ensurePayrollDocumentsSchema();
+    const html = await this.generatePayslipHtml(id);
+    const buffer = Buffer.from(html, 'utf8');
+    const checksum = crypto.createHash('sha256').update(buffer).digest('hex');
+    const employeeDir = path.join(this.payrollDocumentRoot, String(payroll.employeeId));
+    fs.mkdirSync(employeeDir, { recursive: true });
+
+    const fileName = `bulletin-paie-${payroll.month}-${payroll.year}-${Date.now()}.html`;
+    const absolutePath = path.join(employeeDir, fileName);
+    fs.writeFileSync(absolutePath, buffer);
+    const relativePath = path.join(String(payroll.employeeId), fileName);
+
+    const [document] = await this.dataSource.query(`
+      INSERT INTO payroll_documents (
+        payroll_id, employee_id, company_id, document_type, file_name, file_path,
+        file_size, mime_type, checksum, signature_status, signed_by, signed_at
+      ) VALUES ($1,$2,$3,'payslip',$4,$5,$6,'text/html; charset=utf-8',$7,'signed',$8,NOW())
+      RETURNING *
+    `, [
+      payroll.id,
+      payroll.employeeId,
+      payroll.employee?.companyId || null,
+      fileName,
+      relativePath,
+      buffer.length,
+      checksum,
+      user?.id || null,
     ]);
+
+    await this.audit(user?.id || null, 'payroll_document:archive_signed', document.id, ipAddress, {
+      payrollId: payroll.id,
+      employeeId: payroll.employeeId,
+      month: payroll.month,
+      year: payroll.year,
+      checksum,
+    }, 'payroll_documents');
+
+    return this.camelPayrollDocument(document);
+  }
+
+  async listPayrollDocuments(id: number) {
+    await this.findOne(id);
+    await this.ensurePayrollDocumentsSchema();
+    const rows = await this.dataSource.query(`
+      SELECT *
+      FROM payroll_documents
+      WHERE payroll_id = $1
+      ORDER BY created_at DESC
+    `, [id]);
+    return rows.map((row) => this.camelPayrollDocument(row));
+  }
+
+  async downloadPayrollDocument(payrollId: number, documentId: number, user?: any, ipAddress?: string) {
+    await this.findOne(payrollId);
+    await this.ensurePayrollDocumentsSchema();
+    const [document] = await this.dataSource.query(`
+      SELECT *
+      FROM payroll_documents
+      WHERE id = $1 AND payroll_id = $2
+    `, [documentId, payrollId]);
+    if (!document) throw new NotFoundException('Document de paie introuvable');
+
+    const absolutePath = this.resolvePayrollDocumentPath(document.file_path);
+    if (!fs.existsSync(absolutePath)) throw new NotFoundException('Fichier archive introuvable sur le stockage');
+
+    await this.audit(user?.id || null, 'payroll_document:download', document.id, ipAddress, {
+      payrollId,
+      documentId,
+      checksum: document.checksum,
+    }, 'payroll_documents');
+
+    return { document: this.camelPayrollDocument(document), absolutePath };
   }
 
   async getAuditTrail(month: number, year: number, companyId?: number) {
@@ -544,21 +697,40 @@ export class PayrollService {
   async importTimeInputsCsv(companyId: number | null, month: number, year: number, buffer: Buffer, userId?: number, ipAddress?: string) {
     await this.assertPeriodOpen(companyId, month, year);
     const rows = this.parseCsv(buffer.toString('utf8'));
+    return this.importTimeInputRows(companyId, month, year, rows, 'csv', userId, ipAddress);
+  }
+
+  async importTimeInputsExcel(companyId: number | null, month: number, year: number, buffer: Buffer, userId?: number, ipAddress?: string) {
+    await this.assertPeriodOpen(companyId, month, year);
+    const rows = await this.parseExcelRows(buffer);
+    return this.importTimeInputRows(companyId, month, year, rows, 'excel', userId, ipAddress);
+  }
+
+  private async importTimeInputRows(
+    companyId: number | null,
+    month: number,
+    year: number,
+    rows: Record<string, any>[],
+    source: 'csv' | 'excel',
+    userId?: number,
+    ipAddress?: string,
+  ) {
     const result = { total: rows.length, success: 0, failed: 0, errors: [] as any[] };
 
     for (const [index, row] of rows.entries()) {
       try {
         const employeeId = await this.resolveEmployeeId(companyId, row);
+        const computed = this.computeTimeClockValues(row);
         await this.createTimeInput(companyId, {
           employeeId,
           month,
           year,
-          overtimeHours: this.number(row.overtime_hours ?? row.overtimeHours ?? row.heures_sup),
-          nightHours: this.number(row.night_hours ?? row.nightHours ?? row.heures_nuit),
-          sundayHours: this.number(row.sunday_hours ?? row.sundayHours ?? row.heures_dimanche),
-          holidayHours: this.number(row.holiday_hours ?? row.holidayHours ?? row.heures_ferie),
-          unpaidAbsenceDays: this.number(row.unpaid_absence_days ?? row.unpaidAbsenceDays ?? row.absences_non_payees),
-          lateMinutes: this.number(row.late_minutes ?? row.lateMinutes ?? row.retards_minutes),
+          overtimeHours: this.number(this.rowValue(row, ['overtime_hours', 'overtimehours', 'heures_sup', 'heures_supplementaires']) ?? computed.overtimeHours),
+          nightHours: this.number(this.rowValue(row, ['night_hours', 'nighthours', 'heures_nuit', 'nuit'])),
+          sundayHours: this.number(this.rowValue(row, ['sunday_hours', 'sundayhours', 'heures_dimanche', 'dimanche'])),
+          holidayHours: this.number(this.rowValue(row, ['holiday_hours', 'holidayhours', 'heures_ferie', 'jours_feries_travailles'])),
+          unpaidAbsenceDays: this.number(this.rowValue(row, ['unpaid_absence_days', 'unpaidabsencedays', 'absences_non_payees', 'absence_sans_solde'])),
+          lateMinutes: this.number(this.rowValue(row, ['late_minutes', 'lateminutes', 'retards_minutes', 'minutes_retard']) ?? computed.lateMinutes),
           notes: row.notes || undefined,
         }, userId, ipAddress);
         result.success += 1;
@@ -575,6 +747,7 @@ export class PayrollService {
       total: result.total,
       success: result.success,
       failed: result.failed,
+      source,
     }, 'payroll_time_inputs');
     return result;
   }
@@ -669,7 +842,13 @@ export class PayrollService {
       total: employees.length,
     }, 'payroll_generation_jobs');
 
-    setTimeout(() => this.processBatchJob(job.id, employees.map((e) => e.id), dto, user, ipAddress), 0);
+    await this.batchQueue.enqueue({
+      jobId: job.id,
+      employeeIds: employees.map((e) => e.id),
+      dto,
+      user,
+      ipAddress,
+    });
     return this.getBatchJob(job.id);
   }
 
@@ -797,6 +976,31 @@ export class PayrollService {
     `);
   }
 
+  private async ensurePayrollDocumentsSchema() {
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS payroll_documents (
+        id SERIAL PRIMARY KEY,
+        payroll_id INT REFERENCES payrolls(id) ON DELETE CASCADE,
+        employee_id INT REFERENCES employees(id) ON DELETE CASCADE,
+        company_id INT REFERENCES companies(id) ON DELETE SET NULL,
+        document_type VARCHAR(50) NOT NULL DEFAULT 'payslip',
+        file_name VARCHAR(255) NOT NULL,
+        file_path VARCHAR(500) NOT NULL,
+        file_size BIGINT DEFAULT 0,
+        mime_type VARCHAR(150),
+        checksum VARCHAR(128) NOT NULL,
+        signature_status VARCHAR(30) NOT NULL DEFAULT 'signed',
+        signed_by INT REFERENCES users(id) ON DELETE SET NULL,
+        signed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await this.dataSource.query(`CREATE INDEX IF NOT EXISTS idx_payroll_documents_payroll_id ON payroll_documents(payroll_id)`);
+    await this.dataSource.query(`CREATE INDEX IF NOT EXISTS idx_payroll_documents_employee_id ON payroll_documents(employee_id)`);
+    await this.dataSource.query(`CREATE INDEX IF NOT EXISTS idx_payroll_documents_checksum ON payroll_documents(checksum)`);
+  }
+
   private async assertPeriodOpen(companyId: number | null, month: number, year: number) {
     if (!companyId) return;
     const period = await this.getPeriod({ companyId, month, year });
@@ -815,7 +1019,7 @@ export class PayrollService {
       return employee.id;
     }
 
-    const matricule = row.matricule || row.employee_matricule;
+    const matricule = this.rowValue(row, ['matricule', 'employee_matricule', 'employee_code', 'code_employe', 'badge']);
     if (!matricule) throw new BadRequestException('employee_id ou matricule requis');
     const employee = await this.empRepo.findOne({ where: { matricule: String(matricule).trim() } });
     if (!employee || (companyId && Number(employee.companyId) !== Number(companyId))) {
@@ -837,6 +1041,44 @@ export class PayrollService {
         return row;
       }, {} as Record<string, string>);
     });
+  }
+
+  private async parseExcelRows(buffer: Buffer) {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as any);
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) return [];
+
+    const headers: string[] = [];
+    worksheet.getRow(1).eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      headers[colNumber] = this.normalizeHeader(this.excelCellText(cell.value));
+    });
+
+    const rows: Record<string, any>[] = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const item: Record<string, any> = {};
+      let hasValue = false;
+      headers.forEach((header, colNumber) => {
+        if (!header) return;
+        const value = this.excelCellText(row.getCell(colNumber).value);
+        if (value !== '') hasValue = true;
+        item[header] = value;
+      });
+      if (hasValue) rows.push(item);
+    });
+    return rows;
+  }
+
+  private excelCellText(value: any) {
+    if (value === undefined || value === null) return '';
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === 'object') {
+      if ('text' in value) return String(value.text ?? '');
+      if ('result' in value) return this.excelCellText(value.result);
+      if ('richText' in value) return value.richText.map((part: any) => part.text || '').join('');
+    }
+    return String(value).trim();
   }
 
   private splitCsvLine(line: string, delimiter: string) {
@@ -873,6 +1115,44 @@ export class PayrollService {
   private normalizeVariableType(type: string) {
     const value = String(type || 'allowance').toLowerCase();
     return ['deduction', 'retenue', 'retention'].includes(value) ? 'deduction' : 'allowance';
+  }
+
+  private rowValue(row: Record<string, any>, keys: string[]) {
+    for (const key of keys) {
+      const value = row[key] ?? row[this.normalizeHeader(key)];
+      if (value !== undefined && value !== null && value !== '') return value;
+    }
+    return undefined;
+  }
+
+  private computeTimeClockValues(row: Record<string, any>) {
+    const workedHours = this.optionalNumber(this.rowValue(row, ['worked_hours', 'heures_travaillees', 'presence_hours']));
+    const expectedHours = this.optionalNumber(this.rowValue(row, ['expected_hours', 'heures_prevues', 'heures_normales']));
+    const overtimeHours = workedHours !== undefined && expectedHours !== undefined
+      ? Math.max(0, workedHours - expectedHours)
+      : 0;
+
+    const actualStart = this.timeToMinutes(this.rowValue(row, ['clock_in', 'heure_arrivee', 'arrival_time']));
+    const expectedStart = this.timeToMinutes(this.rowValue(row, ['scheduled_in', 'heure_prevue', 'scheduled_start']));
+    const lateMinutes = actualStart !== undefined && expectedStart !== undefined
+      ? Math.max(0, actualStart - expectedStart)
+      : 0;
+
+    return { overtimeHours, lateMinutes };
+  }
+
+  private optionalNumber(value: any) {
+    if (value === undefined || value === null || value === '') return undefined;
+    return this.number(value);
+  }
+
+  private timeToMinutes(value: any) {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value * 24 * 60);
+    const text = String(value).trim();
+    const match = text.match(/(\d{1,2})[:hH](\d{2})/);
+    if (!match) return undefined;
+    return Number(match[1]) * 60 + Number(match[2]);
   }
 
   private number(value: any) {
@@ -922,6 +1202,32 @@ export class PayrollService {
       createdAt: period.created_at,
       updatedAt: period.updated_at,
     };
+  }
+
+  private camelPayrollDocument(document: any) {
+    return {
+      id: document.id,
+      payrollId: document.payroll_id,
+      employeeId: document.employee_id,
+      companyId: document.company_id,
+      documentType: document.document_type,
+      fileName: document.file_name,
+      fileSize: Number(document.file_size || 0),
+      mimeType: document.mime_type,
+      checksum: document.checksum,
+      signatureStatus: document.signature_status,
+      signedBy: document.signed_by,
+      signedAt: document.signed_at,
+      createdAt: document.created_at,
+      updatedAt: document.updated_at,
+    };
+  }
+
+  private resolvePayrollDocumentPath(relativePath: string) {
+    const absolutePath = path.resolve(this.payrollDocumentRoot, relativePath);
+    const relative = path.relative(this.payrollDocumentRoot, absolutePath);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) throw new BadRequestException('Chemin de fichier invalide');
+    return absolutePath;
   }
 
   private audit(userId: number | null, action: string, entityId: number, ipAddress: string, details: any, entity = 'payrolls') {
@@ -981,6 +1287,47 @@ export class PayrollService {
         p.status || '',
       ]),
     ];
+  }
+
+  private async excelWorkbookBuffer(sheets: { name: string; rows: any[][] }[]) {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'SmartHR';
+    workbook.created = new Date();
+
+    for (const sheet of sheets) {
+      const worksheet = workbook.addWorksheet(sheet.name.slice(0, 31));
+      sheet.rows.forEach((row, rowIndex) => {
+        const excelRow = worksheet.addRow(row);
+        const isHeader = rowIndex === 0 || this.isSectionHeader(row);
+        if (isHeader) {
+          excelRow.font = { bold: true, color: { argb: 'FF111827' } };
+          excelRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
+        }
+        excelRow.eachCell((cell) => {
+          cell.border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
+          if (typeof cell.value === 'number') {
+            cell.numFmt = '#,##0.00';
+            cell.alignment = { horizontal: 'right' };
+          }
+        });
+      });
+
+      worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+      worksheet.columns.forEach((column) => {
+        let width = 12;
+        column.eachCell({ includeEmpty: true }, (cell) => {
+          width = Math.max(width, String(cell.value ?? '').length + 2);
+        });
+        column.width = Math.min(width, 42);
+      });
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as ArrayBuffer);
+  }
+
+  private isSectionHeader(row: any[]) {
+    return row.length === 1 && Boolean(row[0]);
   }
 
   private spreadsheetXml(sheets: { name: string; rows: any[][] }[]) {

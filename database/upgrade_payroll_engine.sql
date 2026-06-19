@@ -117,6 +117,24 @@ CREATE TABLE IF NOT EXISTS payroll_periods (
   UNIQUE(company_id, month, year)
 );
 
+CREATE TABLE IF NOT EXISTS payroll_documents (
+  id SERIAL PRIMARY KEY,
+  payroll_id INT REFERENCES payrolls(id) ON DELETE CASCADE,
+  employee_id INT REFERENCES employees(id) ON DELETE CASCADE,
+  company_id INT REFERENCES companies(id) ON DELETE SET NULL,
+  document_type VARCHAR(50) NOT NULL DEFAULT 'payslip',
+  file_name VARCHAR(255) NOT NULL,
+  file_path VARCHAR(500) NOT NULL,
+  file_size BIGINT DEFAULT 0,
+  mime_type VARCHAR(150),
+  checksum VARCHAR(128) NOT NULL,
+  signature_status VARCHAR(30) NOT NULL DEFAULT 'signed',
+  signed_by INT REFERENCES users(id) ON DELETE SET NULL,
+  signed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
 ALTER TABLE payrolls ADD COLUMN IF NOT EXISTS gross_salary DECIMAL(15, 2) DEFAULT 0;
 ALTER TABLE payrolls ADD COLUMN IF NOT EXISTS taxable_salary DECIMAL(15, 2) DEFAULT 0;
 ALTER TABLE payrolls ADD COLUMN IF NOT EXISTS net_fiscal DECIMAL(15, 2) DEFAULT 0;
@@ -186,6 +204,9 @@ CREATE INDEX IF NOT EXISTS idx_payroll_generation_jobs_status ON payroll_generat
 CREATE INDEX IF NOT EXISTS idx_payroll_variable_inputs_period ON payroll_variable_inputs(employee_id, year, month, status);
 CREATE INDEX IF NOT EXISTS idx_payroll_time_inputs_period ON payroll_time_inputs(employee_id, year, month, status);
 CREATE INDEX IF NOT EXISTS idx_payroll_periods_company_period ON payroll_periods(company_id, year, month, status);
+CREATE INDEX IF NOT EXISTS idx_payroll_documents_payroll_id ON payroll_documents(payroll_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_documents_employee_id ON payroll_documents(employee_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_documents_checksum ON payroll_documents(checksum);
 
 INSERT INTO permissions (name, module) VALUES
   ('payroll:generate', 'payroll'),

@@ -25,6 +25,7 @@ import CompanyDashboard from './pages/company/CompanyDashboard';
 import CompanyEmployees from './pages/company/CompanyEmployees';
 import CompanyContracts from './pages/company/CompanyContracts';
 import CompanyPayroll from './pages/company/CompanyPayroll';
+import CompanyTimeAttendance from './pages/company/CompanyTimeAttendance';
 import CompanyLeave from './pages/company/CompanyLeave';
 import CompanyReports from './pages/company/CompanyReports';
 import CompanySettings from './pages/company/CompanySettings';
@@ -74,6 +75,7 @@ function AppRoutes() {
         <Route path="employees/:id" element={<CompanyEmployeeDetail />} />
         <Route path="contracts" element={<CompanyContracts />} />
         <Route path="payroll" element={<CompanyPayroll />} />
+        <Route path="time-attendance" element={<CompanyTimeAttendance />} />
         <Route path="leave" element={<CompanyLeave />} />
         <Route path="reports" element={<CompanyReports />} />
         <Route path="settings" element={<CompanySettings />} />

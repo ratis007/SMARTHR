@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { payrollApi, employeesApi } from '../services/api';
 import Modal from '../components/Modal';
 import toast from 'react-hot-toast';
-import { BanknotesIcon, CheckIcon, PencilIcon, PlusIcon, PowerIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, BanknotesIcon, CheckIcon, DocumentTextIcon, PencilIcon, PlusIcon, PowerIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const getPayrollEmployeeId = (payroll) => Number(payroll?.employeeId ?? payroll?.employee?.id);
 const MONTH_NAMES = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'];
@@ -136,6 +136,31 @@ export default function PayrollPage() {
     try { await payrollApi.delete(payroll.id); toast.success('Fiche archivee'); setConfirm(null); load(); }
     catch (err) { toast.error(err.response?.data?.message || 'Suppression impossible'); }
   };
+  const handlePayslip = async (payroll) => {
+    try {
+      const { data } = await payrollApi.payslip(payroll.id);
+      openBlob(data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulletin indisponible');
+    }
+  };
+  const handlePayslipExcel = async (payroll) => {
+    try {
+      const { data } = await payrollApi.payslipExcel(payroll.id);
+      saveBlob(data, `bulletin-paie-${payroll.id}.xlsx`);
+      toast.success('Bulletin Excel telecharge');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulletin Excel indisponible');
+    }
+  };
+  const handleArchivePayslip = async (payroll) => {
+    try {
+      await payrollApi.archivePayslip(payroll.id);
+      toast.success('Bulletin archive et signe');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Archivage du bulletin impossible');
+    }
+  };
 
   const totalMasse = payrolls.reduce((sum, payroll) => sum + Number(payroll.netSalary), 0);
   const totalBrut = payrolls.reduce((sum, payroll) => sum + Number(payroll.baseSalary) + Number(payroll.totalAllowances), 0);
@@ -179,7 +204,7 @@ export default function PayrollPage() {
                     <td className="td text-red-500 font-medium">-{Number(payroll.totalDeductions).toLocaleString('fr-FR')}</td>
                     <td className="td font-bold text-gray-900">{Number(payroll.netSalary).toLocaleString('fr-FR')} CDF</td>
                     <td className="td"><span className={status.cls}>{status.label}</span></td>
-                    <td className="td"><PayrollActions payroll={payroll} onValidate={handleValidate} onEdit={setEditing} onConfirm={setConfirm} /></td>
+                    <td className="td"><PayrollActions payroll={payroll} onValidate={handleValidate} onEdit={setEditing} onConfirm={setConfirm} onPayslip={handlePayslip} onPayslipExcel={handlePayslipExcel} onArchivePayslip={handleArchivePayslip} /></td>
                   </tr>
                 );
               })}
@@ -204,15 +229,33 @@ function SummaryCard({ title, value, tone }) {
   return <div className={`card bg-gradient-to-br ${color}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-75">{title}</p><p className="text-2xl font-bold mt-1">{Number(value).toLocaleString('fr-FR')} CDF</p></div>;
 }
 
-function PayrollActions({ payroll, onValidate, onEdit, onConfirm }) {
+function PayrollActions({ payroll, onValidate, onEdit, onConfirm, onPayslip, onPayslipExcel, onArchivePayslip }) {
   return (
     <div className="flex items-center gap-1.5">
       {payroll.status === 'draft' && <button type="button" title="Valider" onClick={() => onValidate(payroll.id)} className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors"><CheckIcon className="w-4 h-4" /></button>}
       {payroll.status === 'draft' && <button type="button" title="Modifier" onClick={() => onEdit(payroll)} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"><PencilIcon className="w-4 h-4" /></button>}
+      <button type="button" title="Bulletin" onClick={() => onPayslip(payroll)} className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors"><DocumentTextIcon className="w-4 h-4" /></button>
+      <button type="button" title="Bulletin Excel" onClick={() => onPayslipExcel(payroll)} className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"><ArrowDownTrayIcon className="w-4 h-4" /></button>
+      <button type="button" title="Archiver et signer" onClick={() => onArchivePayslip(payroll)} className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors"><DocumentTextIcon className="w-4 h-4" /></button>
       <button type="button" title={payroll.status === 'archived' ? 'Activer' : 'Archiver'} onClick={() => onConfirm({ type: 'status', item: payroll })} className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors"><PowerIcon className="w-4 h-4" /></button>
       {payroll.status === 'draft' && <button type="button" title="Supprimer" onClick={() => onConfirm({ type: 'delete', item: payroll })} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>}
     </div>
   );
+}
+
+function saveBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function openBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 function ConfirmModal({ confirm, onClose, onDelete, onToggle }) {

@@ -41,6 +41,12 @@ npm run dev
 
 Interface : http://localhost:5173
 
+## Manuel de test global
+
+Guide complet de fonctionnement et de test global:
+
+- `docs/manual-test-global-smarthr.md`
+
 ### 4. Desktop (optionnel)
 
 ```bash
