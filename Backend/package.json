@@ -9,6 +9,11 @@
     "test:time-attendance": "node node_modules/ts-node/dist/bin.js tests/time-attendance-engine.spec.ts",
     "test:payroll:api": "node node_modules/ts-node/dist/bin.js tests/payroll-api.integration.ts",
     "start:test:payroll-api": "node scripts/start-payroll-api-test-server.js",
+    "typeorm:ts": "node -r ts-node/register ./node_modules/typeorm/cli.js",
+    "migration:generate": "npm run typeorm:ts -- migration:generate -d src/typeorm.config.ts",
+    "migration:run:local": "npm run typeorm:ts -- migration:run -d src/typeorm.config.ts",
+    "migration:run": "node ./node_modules/typeorm/cli.js migration:run -d dist/typeorm.config.js",
+    "migration:show": "npm run typeorm:ts -- migration:show -d src/typeorm.config.ts",
     "start": "node dist/main",
     "start:dev": "node node_modules/ts-node/dist/bin.js src/main.ts",
     "start:prod": "node dist/main"

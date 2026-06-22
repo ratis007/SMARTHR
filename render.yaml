@@ -4,8 +4,7 @@ services:
     runtime: node
     plan: free
     rootDir: Backend
-    buildCommand: npm install && npm run build
-    preDeployCommand: node scripts/run-sql.js
+    buildCommand: npm ci && npm run build && npm run migration:run
     startCommand: npm run start:prod
     envVars:
       - key: NODE_ENV
