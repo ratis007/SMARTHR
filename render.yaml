@@ -24,11 +24,11 @@ services:
     name: smarthr-frontend
     runtime: static
     rootDir: Frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://smarthr-backend.onrender.com/api
+        value: https://smarthr-backend-gzm2.onrender.com/api
     routes:
       - type: rewrite
         source: /*
