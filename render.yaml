@@ -29,7 +29,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://smarthr-backend.onrender.com/api
+        value: https://smarthr-backend-gzm2.onrender.com/api
     routes:
       - type: rewrite
         source: /*
