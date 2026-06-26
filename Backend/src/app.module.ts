@@ -12,6 +12,7 @@ import { ReportsModule } from './reports/reports.module';
 import { SettingsModule } from './settings/settings.module';
 import { EmployeeDocumentsModule } from './employee-documents/employee-documents.module';
 import { TimeAttendanceModule } from './time-attendance/time-attendance.module';
+import { SetupModule } from './setup/setup.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { TimeAttendanceModule } from './time-attendance/time-attendance.module';
     TimeAttendanceModule,
     ReportsModule,
     SettingsModule,
+    SetupModule,
   ],
 })
 export class AppModule {}

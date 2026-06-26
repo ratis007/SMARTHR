@@ -47,6 +47,7 @@ export class UsersService {
       lastName: dto.lastName,
       status,
       isActive: status === 'active',
+      emailVerified: false,
       password: await bcrypt.hash(dto.password, 10),
       roles: await this.resolveRoles(dto.roleIds),
     });

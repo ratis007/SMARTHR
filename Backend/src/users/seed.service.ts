@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -11,6 +12,7 @@ export class SeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SeedService.name);
 
   constructor(
+    private readonly config: ConfigService,
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Role) private roleRepo: Repository<Role>,
     @InjectRepository(Permission) private permRepo: Repository<Permission>,
@@ -88,6 +90,15 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async seedAdminUser() {
+    const shouldSeedDefaultAdmin =
+      this.config.get<string>('ALLOW_DEFAULT_ADMIN_SEED') === 'true' ||
+      this.config.get<string>('NODE_ENV') !== 'production';
+
+    if (!shouldSeedDefaultAdmin) {
+      this.logger.log('Default admin seed skipped in production');
+      return;
+    }
+
     const exists = await this.userRepo.findOne({ where: { email: 'admin@smarthr.com' }, relations: ['roles'] });
     const adminRole = await this.roleRepo.findOne({ where: { name: 'super_admin' } });
     const hashed = await bcrypt.hash('SmartHR@2026', 12);
@@ -99,6 +110,7 @@ export class SeedService implements OnApplicationBootstrap {
         lastName: 'SmartHR',
         status: 'active',
         isActive: true,
+        emailVerified: true,
         roles: adminRole ? [adminRole] : [],
       });
       await this.userRepo.save(user);
@@ -108,6 +120,7 @@ export class SeedService implements OnApplicationBootstrap {
     exists.password = hashed;
     exists.status = exists.status || 'active';
     exists.isActive = exists.status === 'active';
+    exists.emailVerified = true;
     if (adminRole && (!exists.roles || !exists.roles.some((r) => r.name === 'super_admin'))) {
       exists.roles = [...(exists.roles || []), adminRole];
     }
