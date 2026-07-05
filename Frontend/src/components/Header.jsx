@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRightOnRectangleIcon, BellIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import ThemeToggle from './ThemeToggle';
 
 const PAGE_TITLES = {
   '/': 'Tableau de bord',
@@ -49,6 +50,7 @@ export default function Header() {
       <h2 className="text-lg font-bold text-gray-900 tracking-tight">{title}</h2>
 
       <div className="flex items-center gap-3 ml-auto">
+        <ThemeToggle />
         <button
           type="button"
           className="relative p-2.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors"
