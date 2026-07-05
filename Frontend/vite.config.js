@@ -10,12 +10,17 @@ export default defineConfig({
       '@heroicons/react/24/solid': fileURLToPath(new URL('./src/icons/heroicons.jsx', import.meta.url)),
     },
   },
-  server: {
-    port: 5174,
-    host: true,
-    allowedHosts: 'all',
-    proxy: {
-      '/api': { target: 'http://localhost:3000', changeOrigin: true },
+server: {
+  port: 5173,
+  host: '0.0.0.0',
+  cors: true,
+  allowedHosts: true,
+  proxy: {
+    '/api': {
+      target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000',
+      changeOrigin: true,
     },
   },
+  
+  }
 });

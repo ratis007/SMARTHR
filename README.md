@@ -41,6 +41,26 @@ npm run dev
 
 Interface : http://localhost:5173
 
+### Démarrage via Docker (recommandé)
+
+Le projet fournit un lanceur qui construit et démarre les services Docker (Postgres, Backend, Frontend).
+
+Depuis la racine du dépôt, exécuter sous Windows :
+
+```powershell
+.\\INSTALLER_ET_LANCER_SMARTHR.bat
+```
+
+Pour arrêter les services :
+
+```powershell
+.\\ARRETER_SMARTHR.bat
+```
+
+Remarque : lors d'un démarrage, Docker Desktop doit être installé et en cours d'exécution. Le script vérifie le statut et reconstruit les images si nécessaire.
+
+Correction récente : une erreur de syntaxe a été corrigée dans `Frontend/vite.config.js` (manque de fermetures), ce qui empêchait le conteneur frontend de démarrer. Si vous rencontrez encore des problèmes, regardez les logs Docker : `docker compose -f docker-compose.local.yml logs --tail 200`.
+
 ## Manuel de test global
 
 Guide complet de fonctionnement et de test global:
