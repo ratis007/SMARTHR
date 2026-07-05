@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:16
+    container_name: smarthr-postgres-local
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: smarthr_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - smarthr_postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/demo_seed.sql:/docker-entrypoint-initdb.d/02_demo_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smarthr_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile.local
+    image: smarthr-backend-local
+    container_name: smarthr-backend-local
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: yourpassword
+      DB_NAME: smarthr_db
+      JWT_SECRET: your_jwt_secret_key_here
+      JWT_EXPIRES_IN: 7d
+      PORT: 3000
+      PAYROLL_BATCH_QUEUE_DRIVER: memory
+      TIME_ATTENDANCE_QUEUE_DRIVER: memory
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile.local
+    image: smarthr-frontend-local
+    container_name: smarthr-frontend-local
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:3000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  smarthr_postgres_data:

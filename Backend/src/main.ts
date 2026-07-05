@@ -38,4 +38,7 @@ async function bootstrap() {
   console.log(`SmartHR Backend running on http://localhost:${port}/api`);
   console.log(`Swagger docs: http://localhost:${port}/api/docs`);
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('bootstrap failed', error);
+  process.exit(1);
+});
