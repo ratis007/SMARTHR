@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { BanknotesIcon, Cog6ToothIcon, PlusIcon, ShieldCheckIcon, TrashIcon } from '@heroicons/react/24/outline';
 import api, { companiesApi, platformSettingsApi } from '../services/api';
+import ThemeToggle from '../components/ThemeToggle';
+import { useTheme } from '../contexts/ThemeContext';
 
 const settingTypes = [
   ['department', 'Departements'],
@@ -111,6 +113,22 @@ export default function SettingsPage() {
         <select className="input max-w-xs" value={companyId} onChange={(e) => setCompanyId(e.target.value)}>
           {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
         </select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="card md:col-span-1 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold">Thème</h3>
+            <p className="text-sm text-gray-500">Choisir le thème de l'interface</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2">
+              <button type="button" className={`btn-secondary ${useTheme().theme === 'light' ? 'bg-indigo-50 text-indigo-700' : ''}`} onClick={() => useTheme().setTheme('light')}>Clair</button>
+              <button type="button" className={`btn-secondary ${useTheme().theme === 'dark' ? 'bg-slate-700 text-slate-100' : ''}`} onClick={() => useTheme().setTheme('dark')}>Sombre</button>
+            </div>
+            <ThemeToggle />
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

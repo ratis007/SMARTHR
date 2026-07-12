@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { payrollApi, employeesApi, platformSettingsApi } from '../../services/api';
 import Modal from '../../components/Modal';
 import toast from 'react-hot-toast';
-import { PlusIcon, CheckIcon, BanknotesIcon, ArrowTrendingUpIcon, PencilIcon, PowerIcon, TrashIcon, DocumentTextIcon, ArrowDownTrayIcon, LockClosedIcon, LockOpenIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, CheckIcon, BanknotesIcon, ArrowTrendingUpIcon, PencilIcon, PowerIcon, TrashIcon, DocumentTextIcon, ArrowDownTrayIcon, LockClosedIcon, LockOpenIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const getPayrollEmployeeId = (payroll) => Number(payroll?.employeeId ?? payroll?.employee?.id);
 const MONTH_NAMES = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'];
@@ -957,7 +957,7 @@ export default function CompanyPayroll() {
           <button disabled={isPeriodClosed} onClick={() => setVariableModal(true)} className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">Ajouter variable</button>
           <button disabled={isPeriodClosed} onClick={() => setTimeModal(true)} className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">Temps / presence</button>
           <button disabled={isPeriodClosed} onClick={handleBatchGenerate} className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">Generation collective</button>
-          <button disabled={isPeriodClosed} onClick={() => setModal(true)} className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"><PlusIcon className="w-4 h-4" /> Generer une fiche</button>
+          <button disabled={isPeriodClosed} onClick={() => setModal(true)} className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"><SparklesIcon className="w-4 h-4" /> Generer une fiche</button>
         </div>
       </div>
 
@@ -1221,7 +1221,7 @@ export default function CompanyPayroll() {
           <p className="text-gray-400 text-sm mt-1">Generez des fiches de paie pour {MONTH_NAMES[month - 1]} {year}</p>
         </div>
       ) : (
-        <div className="table-container overflow-x-auto">
+        <div className="table-container overflow-x-auto rounded-2xl border border-gray-200">
           <table className="w-full text-sm min-w-[980px]">
             <thead><tr>{['Matricule', 'Employe', 'Salaire base', 'Primes', 'Deductions', 'Net a payer', 'Statut', 'Action'].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-50">

@@ -33,6 +33,8 @@ const iconPaths = {
   UserGroupIcon: 'M17.25 21a5.25 5.25 0 0 0-10.5 0M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm7.5 9a3.75 3.75 0 0 0-3.1-3.69M4.5 21a3.75 3.75 0 0 1 3.1-3.69',
   UsersIcon: 'M15 19.5a6 6 0 0 0-12 0M9 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm12 7.5a4.5 4.5 0 0 0-6.75-3.9M15.75 3.75a3.75 3.75 0 0 1 0 7.5',
   XMarkIcon: 'M6 18 18 6M6 6l12 12',
+  SunIcon: 'M12 3v2.25m0 13.5V21m8.25-8.25H21M3 12h2.25m12.03-5.72 1.59-1.59M5.34 18.66l1.59-1.59m12.03 1.59-1.59-1.59M5.34 5.34 6.93 6.93M12 7.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z',
+  MoonIcon: 'M21 12.79A9 9 0 1 1 11.21 3a7.5 7.5 0 0 0 9.79 9.79Z',
 };
 
 const createIcon = (name) => {
@@ -88,3 +90,5 @@ export const UserCircleIcon = createIcon('UserCircleIcon');
 export const UserGroupIcon = createIcon('UserGroupIcon');
 export const UsersIcon = createIcon('UsersIcon');
 export const XMarkIcon = createIcon('XMarkIcon');
+export const SunIcon = createIcon('SunIcon');
+export const MoonIcon = createIcon('MoonIcon');

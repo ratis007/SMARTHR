@@ -6,6 +6,6 @@ echo   SmartHR - Frontend (React + Vite)
 echo   http://localhost:5173
 echo ========================================
 echo.
-cd /d I:\Logiciel_RH_Payroll\Frontend
-npm run dev
+cd /d "%~dp0Frontend"
+npm run dev -- --host 0.0.0.0
 pause

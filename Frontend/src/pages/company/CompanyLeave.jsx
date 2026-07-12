@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { leaveApi, employeesApi } from '../../services/api';
 import Modal from '../../components/Modal';
 import toast from 'react-hot-toast';
-import { PlusIcon, CheckIcon, XMarkIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, CheckIcon, XMarkIcon, CalendarDaysIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const LEAVE_TYPES = [
   { value: 'annual',    label: 'Congé annuel' },
@@ -112,12 +112,12 @@ export default function CompanyLeave() {
               : `${leaves.length} demande(s) au total`}
           </p>
         </div>
-        <button onClick={() => setModal(true)} className="btn-primary"><PlusIcon className="w-4 h-4" /> Nouvelle demande</button>
+        <button onClick={() => setModal(true)} className="btn-primary flex items-center gap-2"><SparklesIcon className="w-4 h-4" /> Nouvelle demande</button>
       </div>
 
       <div className="flex gap-2 flex-wrap">
         {FILTERS.map(f => (
-          <button key={f.value} onClick={() => setFilter(f.value)} className={filter === f.value ? 'filter-pill-active' : 'filter-pill-inactive'}>
+          <button key={f.value} onClick={() => setFilter(f.value)} className={filter === f.value ? 'rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm' : 'rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:border-indigo-200 hover:text-indigo-700'}>
             {f.label}
             {f.value === 'pending' && pendingCount > 0 && (
               <span className="ml-1.5 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
@@ -131,7 +131,7 @@ export default function CompanyLeave() {
       ) : filtered.length === 0 ? (
         <div className="empty-state card"><CalendarDaysIcon className="w-14 h-14 text-gray-200 mb-3" /><p className="text-gray-500 font-medium">Aucune demande de congé</p></div>
       ) : (
-        <div className="table-container">
+        <div className="table-container rounded-2xl border border-gray-200">
           <table className="w-full text-sm">
             <thead><tr>{['Employé','Type','Période','Durée','Statut','Actions'].map(h => <th key={h} className="th">{h}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-50">

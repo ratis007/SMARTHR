@@ -10,6 +10,7 @@ import {
   PencilIcon,
   PlusIcon,
   PowerIcon,
+  UserPlusIcon,
   TrashIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
@@ -124,7 +125,7 @@ export default function CompanyEmployees() {
           <h1 className="page-title">Employes</h1>
           <p className="page-subtitle">{employees.length} employe(s)</p>
         </div>
-        <button onClick={() => setModal(true)} className="btn-primary"><PlusIcon className="w-4 h-4" /> Nouvel employe</button>
+        <button onClick={() => setModal(true)} className="btn-primary flex items-center gap-2"><UserPlusIcon className="w-4 h-4" /> Nouvel employe</button>
       </div>
 
       <div className="relative max-w-md">
@@ -137,7 +138,7 @@ export default function CompanyEmployees() {
       ) : filtered.length === 0 ? (
         <div className="empty-state card"><UsersIcon className="w-14 h-14 text-gray-200 mb-3" /><p className="text-gray-500 font-medium">Aucun employe trouve</p></div>
       ) : (
-        <div className="table-container overflow-x-auto">
+        <div className="table-container overflow-x-auto rounded-2xl border border-gray-200">
           <table className="w-full text-sm min-w-[860px]">
             <thead><tr>{['Matricule', 'Employe', 'Poste / Departement', 'Statut', 'Actions'].map((header) => <th key={header} className="th">{header}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-50">
@@ -145,7 +146,7 @@ export default function CompanyEmployees() {
                 const status = statusConfig[employee.status] ?? statusConfig.active;
                 return (
                   <tr key={employee.id} className="tr-hover">
-                    <td className="td"><span className="font-mono text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">{employee.matricule}</span></td>
+                    <td className="td"><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">{employee.matricule}</span></td>
                     <td className="td">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0">{employee.lastName?.[0]}{employee.firstName?.[0]}</div>
@@ -156,10 +157,10 @@ export default function CompanyEmployees() {
                     <td className="td"><span className={status.cls}>{status.label}</span></td>
                     <td className="td">
                       <div className="flex items-center gap-1.5">
-                        <Link to={`/app/${companyId}/employees/${employee.id}`} title="Voir" className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors"><ChevronRightIcon className="w-4 h-4" /></Link>
-                        <button type="button" title="Modifier" onClick={() => setEditing(employee)} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"><PencilIcon className="w-4 h-4" /></button>
-                        <button type="button" title={employee.status === 'active' ? 'Desactiver' : 'Activer'} onClick={() => setConfirm({ type: 'status', item: employee })} className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors"><PowerIcon className="w-4 h-4" /></button>
-                        <button type="button" title="Archiver" onClick={() => setConfirm({ type: 'delete', item: employee })} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"><TrashIcon className="w-4 h-4" /></button>
+                        <Link to={`/app/${companyId}/employees/${employee.id}`} title="Voir" className="rounded-lg p-1.5 text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-800"><ChevronRightIcon className="w-4 h-4" /></Link>
+                        <button type="button" title="Modifier" onClick={() => setEditing(employee)} className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"><PencilIcon className="w-4 h-4" /></button>
+                        <button type="button" title={employee.status === 'active' ? 'Desactiver' : 'Activer'} onClick={() => setConfirm({ type: 'status', item: employee })} className="rounded-lg p-1.5 text-amber-600 transition-colors hover:bg-amber-50 hover:text-amber-800"><PowerIcon className="w-4 h-4" /></button>
+                        <button type="button" title="Archiver" onClick={() => setConfirm({ type: 'delete', item: employee })} className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"><TrashIcon className="w-4 h-4" /></button>
                       </div>
                     </td>
                   </tr>

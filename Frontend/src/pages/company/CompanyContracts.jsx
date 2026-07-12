@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { contractsApi, employeesApi } from '../../services/api';
 import Modal from '../../components/Modal';
 import toast from 'react-hot-toast';
-import { DocumentTextIcon, PencilIcon, PlusIcon, PowerIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, PencilIcon, PlusIcon, PowerIcon, TrashIcon, UserPlusIcon } from '@heroicons/react/24/outline';
 
 const CONTRACT_TYPES = ['CDI', 'CDD', 'STAGE', 'CONSULTANT'];
 const typeColors = { CDI: 'badge-green', CDD: 'badge-blue', STAGE: 'badge-yellow', CONSULTANT: 'badge-purple' };
@@ -92,11 +92,15 @@ export default function CompanyContracts() {
     <div className="space-y-6 animate-fade-in">
       <div className="page-header">
         <div><h1 className="page-title">Contrats</h1><p className="page-subtitle">{contracts.length} contrat(s) - {contracts.filter((contract) => contract.status === 'active').length} actif(s)</p></div>
-        <button onClick={() => setModal(true)} className="btn-primary"><PlusIcon className="w-4 h-4" /> Nouveau contrat</button>
+        <button onClick={() => setModal(true)} className="btn-primary flex items-center gap-2"><UserPlusIcon className="w-4 h-4" /> Nouveau contrat</button>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {['all', ...CONTRACT_TYPES].map((item) => <button key={item} onClick={() => setFilter(item)} className={filter === item ? 'filter-pill-active' : 'filter-pill-inactive'}>{item === 'all' ? 'Tous' : item}</button>)}
+      <div className="flex flex-wrap gap-2">
+        {['all', ...CONTRACT_TYPES].map((item) => (
+          <button key={item} onClick={() => setFilter(item)} className={filter === item ? 'rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm' : 'rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 hover:border-indigo-200 hover:text-indigo-700'}>
+            {item === 'all' ? 'Tous' : item}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -104,7 +108,7 @@ export default function CompanyContracts() {
       ) : filtered.length === 0 ? (
         <div className="empty-state card"><DocumentTextIcon className="w-14 h-14 text-gray-200 mb-3" /><p className="text-gray-500 font-medium">Aucun contrat</p></div>
       ) : (
-        <div className="table-container overflow-x-auto">
+        <div className="table-container overflow-x-auto rounded-2xl border border-gray-200">
           <table className="w-full text-sm min-w-[980px]">
             <thead><tr>{['Employe', 'Type', 'Date debut', 'Date fin', 'Salaire mensuel', 'Statut', 'Actions'].map((header) => <th key={header} className="th">{header}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-50">

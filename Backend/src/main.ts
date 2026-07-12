@@ -21,7 +21,10 @@ async function bootstrap() {
       return new (require('@nestjs/common').BadRequestException)(messages);
     },
   }));
-  app.enableCors();
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
 
   // Swagger documentation
   const config = new DocumentBuilder()
@@ -34,9 +37,9 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`SmartHR Backend running on http://localhost:${port}/api`);
-  console.log(`Swagger docs: http://localhost:${port}/api/docs`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`SmartHR Backend running on http://0.0.0.0:${port}/api`);
+  console.log(`Swagger docs: http://0.0.0.0:${port}/api/docs`);
 }
 bootstrap().catch((error) => {
   console.error('bootstrap failed', error);

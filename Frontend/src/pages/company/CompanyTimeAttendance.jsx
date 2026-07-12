@@ -8,6 +8,9 @@ import {
   ChartBarIcon,
   CheckIcon,
   ClockIcon,
+  DocumentArrowDownIcon,
+  ExclamationTriangleIcon,
+  SparklesIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
 import {
@@ -112,6 +115,19 @@ export default function CompanyTimeAttendance() {
   });
   const [draggedScheduleId, setDraggedScheduleId] = useState(null);
   const [notificationForm, setNotificationForm] = useState({ simulateProviders: true });
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const tabs = [
+    { id: 'overview', label: 'Vue d’ensemble' },
+    { id: 'planning', label: 'Planning' },
+    { id: 'monitoring', label: 'Suivi' },
+    { id: 'days', label: 'Journées' },
+  ];
+  const quickActions = [
+    { id: 'planning', title: 'Créer un planning', description: 'Rotations, profils et génération', icon: CalendarDaysIcon, badge: 'Planning' },
+    { id: 'monitoring', title: 'Contrôler les alertes', description: 'Retards, absences et notifications', icon: BellIcon, badge: 'Suivi' },
+    { id: 'days', title: 'Consulter les journées', description: 'Présences, validation et export', icon: CheckIcon, badge: 'Journées' },
+  ];
 
   const approvedCount = useMemo(
     () => days.filter((item) => ['hr_approved', 'closed'].includes(item.workflowStatus)).length,
@@ -503,503 +519,526 @@ export default function CompanyTimeAttendance() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-        <Kpi icon={UsersIcon} label="Effectif actif" value={dashboard?.activeEmployees || 0} tone="indigo" />
-        <Kpi icon={CheckIcon} label="Presents" value={dashboard?.present || 0} tone="emerald" />
-        <Kpi icon={CalendarDaysIcon} label="Absents" value={dashboard?.absent || 0} tone="red" />
-        <Kpi icon={ClockIcon} label="Retards" value={dashboard?.late || 0} tone="amber" />
-        <Kpi icon={ChartBarIcon} label="Alertes" value={openAlerts} tone="red" />
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <form onSubmit={createProfile} className="card space-y-3">
-          <PanelTitle title="Profil horaire" subtitle="Standard lundi-vendredi" />
-          <div className="grid grid-cols-2 gap-3">
-            <input className="input" value={profileForm.code} onChange={(e) => setProfileForm({ ...profileForm, code: e.target.value })} placeholder="Code" />
-            <input className="input" value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} placeholder="Nom" />
-            <input className="input" type="time" value={profileForm.startTime} onChange={(e) => setProfileForm({ ...profileForm, startTime: e.target.value })} />
-            <input className="input" type="time" value={profileForm.endTime} onChange={(e) => setProfileForm({ ...profileForm, endTime: e.target.value })} />
-            <input className="input" type="time" value={profileForm.breakStart} onChange={(e) => setProfileForm({ ...profileForm, breakStart: e.target.value })} />
-            <input className="input" type="time" value={profileForm.breakEnd} onChange={(e) => setProfileForm({ ...profileForm, breakEnd: e.target.value })} />
-          </div>
-          <button className="btn-primary w-full justify-center" type="submit">Enregistrer profil</button>
-        </form>
-
-        <form onSubmit={createClockEvent} className="card space-y-3">
-          <PanelTitle title="Pointage manuel" subtitle="Entree et sortie" />
-          <select className="input" value={clockForm.employeeId} onChange={(e) => setClockForm({ ...clockForm, employeeId: e.target.value })}>
-            <option value="">Selectionner un employe</option>
-            {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.matricule} - {employee.lastName} {employee.firstName}</option>)}
-          </select>
-          <div className="grid grid-cols-2 gap-3">
-            <select className="input" value={clockForm.eventType} onChange={(e) => setClockForm({ ...clockForm, eventType: e.target.value })}>
-              <option value="entry">Entree</option>
-              <option value="exit">Sortie</option>
-            </select>
-            <input className="input" type="datetime-local" value={clockForm.eventTime} onChange={(e) => setClockForm({ ...clockForm, eventTime: e.target.value })} />
-          </div>
-          <button className="btn-primary w-full justify-center" type="submit">Enregistrer pointage</button>
-        </form>
-
-        <form onSubmit={importTerminalRows} className="card space-y-3">
-          <PanelTitle title="Import terminal" subtitle="RFID, badge, biometrie" />
-          <div className="grid grid-cols-2 gap-3">
-            <input className="input" value={terminalForm.terminalId} onChange={(e) => setTerminalForm({ ...terminalForm, terminalId: e.target.value })} placeholder="Terminal" />
-            <input className="input" value={terminalForm.source} onChange={(e) => setTerminalForm({ ...terminalForm, source: e.target.value })} placeholder="Source" />
-          </div>
-          <textarea
-            className="input min-h-[92px] resize-y font-mono text-xs"
-            value={terminalForm.rows}
-            onChange={(e) => setTerminalForm({ ...terminalForm, rows: e.target.value })}
-            placeholder="MATRICULE,entry,2026-06-18T08:00"
-          />
-          <button className="btn-secondary w-full justify-center" type="submit">Importer pointages</button>
-        </form>
-
-        <div className="card space-y-3">
-          <PanelTitle title="Calcul et paie" subtitle="Periode active" />
-          <div className="grid grid-cols-2 gap-3">
-            <input className="input" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            <input className="input" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <button className="btn-secondary w-full justify-center" type="button" onClick={calculate}>Calculer</button>
-            <button className="btn-primary w-full justify-center" type="button" onClick={calculateAsync}>Job calcul</button>
-          </div>
-          <button className="btn-primary w-full justify-center" type="button" onClick={exportPayroll}>Exporter vers paie</button>
-          <p className="text-xs text-gray-500">{approvedCount} journee(s) approuvee(s) exportables.</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <form onSubmit={createRotation} className="card space-y-3">
-          <PanelTitle title="Rotation" subtitle="Cycle travail/repos" />
-          <div className="grid grid-cols-2 gap-3">
-            <input className="input" value={rotationForm.code} onChange={(e) => setRotationForm({ ...rotationForm, code: e.target.value })} placeholder="Code" />
-            <input className="input" value={rotationForm.name} onChange={(e) => setRotationForm({ ...rotationForm, name: e.target.value })} placeholder="Nom" />
-            <input className="input" type="number" min="1" value={rotationForm.workDays} onChange={(e) => setRotationForm({ ...rotationForm, workDays: e.target.value })} />
-            <input className="input" type="number" min="0" value={rotationForm.restDays} onChange={(e) => setRotationForm({ ...rotationForm, restDays: e.target.value })} />
-            <select className="input" value={rotationForm.rotationType} onChange={(e) => setRotationForm({ ...rotationForm, rotationType: e.target.value })}>
-              <option value="work_rest">Travail / repos</option>
-              <option value="day_night">Jour / nuit</option>
-            </select>
-            <input className="input" type="date" value={rotationForm.cycleStartDate} onChange={(e) => setRotationForm({ ...rotationForm, cycleStartDate: e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <select className="input" value={rotationForm.dayProfileId} onChange={(e) => setRotationForm({ ...rotationForm, dayProfileId: e.target.value })}>
-              <option value="">Profil jour</option>
-              {(configuration?.profiles || []).map((profile) => <option key={profile.id} value={profile.id}>{profile.code} - {profile.name}</option>)}
-            </select>
-            <select className="input" value={rotationForm.nightProfileId} onChange={(e) => setRotationForm({ ...rotationForm, nightProfileId: e.target.value })}>
-              <option value="">Profil nuit</option>
-              {(configuration?.profiles || []).map((profile) => <option key={profile.id} value={profile.id}>{profile.code} - {profile.name}</option>)}
-            </select>
-          </div>
-          <button className="btn-primary w-full justify-center" type="submit">Enregistrer rotation</button>
-        </form>
-
-        <div className="card space-y-3">
-          <PanelTitle title="Generer planning" subtitle="Applique rotation ou profil fixe" />
-          <div className="grid grid-cols-2 gap-3">
-            <select className="input" value={scheduleForm.rotationPatternId} onChange={(e) => setScheduleForm({ ...scheduleForm, rotationPatternId: e.target.value, profileId: '' })}>
-              <option value="">Rotation</option>
-              {(configuration?.rotations || []).map((rotation) => <option key={rotation.id} value={rotation.id}>{rotation.code} - {rotation.name}</option>)}
-            </select>
-            <select className="input" value={scheduleForm.profileId} onChange={(e) => setScheduleForm({ ...scheduleForm, profileId: e.target.value, rotationPatternId: '' })}>
-              <option value="">Profil fixe</option>
-              {(configuration?.profiles || []).map((profile) => <option key={profile.id} value={profile.id}>{profile.code} - {profile.name}</option>)}
-            </select>
-            <select className="input" value={scheduleForm.employeeId} onChange={(e) => setScheduleForm({ ...scheduleForm, employeeId: e.target.value })}>
-              <option value="">Tous les employes</option>
-              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.matricule} - {employee.lastName}</option>)}
-            </select>
-            <input className="input" value={scheduleForm.department} onChange={(e) => setScheduleForm({ ...scheduleForm, department: e.target.value })} placeholder="Departement" />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input type="checkbox" checked={scheduleForm.overwrite} onChange={(e) => setScheduleForm({ ...scheduleForm, overwrite: e.target.checked })} />
-            Remplacer les lignes existantes
-          </label>
-          <button className="btn-secondary w-full justify-center" type="button" onClick={generateSchedule}>Generer planning</button>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <PanelTitle title="Planning genere" subtitle={`${schedule.length} ligne(s) sur la periode`} />
-            <CalendarDaysIcon className="w-5 h-5 text-indigo-500" />
-          </div>
-          <div className="mt-4 max-h-64 overflow-auto space-y-2">
-            {schedule.slice(0, 12).map((item) => (
-              <div key={item.id} className="rounded-lg border border-gray-100 p-3 text-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-gray-900">{new Date(item.workDate).toLocaleDateString('fr-FR')}</span>
-                  <span className={item.status === 'rest' ? 'badge-gray' : 'badge-blue'}>{item.status}</span>
-                </div>
-                <div className="mt-1 text-xs text-gray-500">{item.matricule} - {item.lastName} {item.firstName}</div>
-                <div className="mt-1 text-xs text-gray-500">{item.profileName || item.shiftLabel || 'Repos'} {item.plannedStart ? `(${item.plannedStart} - ${item.plannedEnd})` : ''}</div>
-              </div>
-            ))}
-            {!schedule.length && <p className="text-sm text-gray-400">Aucun planning genere sur cette periode.</p>}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="card xl:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <PanelTitle title="Calendrier planning" subtitle="Deplacer une carte, filtrer par equipe ou passer en vue semaine" />
-            <div className="flex flex-wrap items-center gap-2">
-              <button className="btn-secondary py-2 px-3" type="button" onClick={() => movePlanningWindow(-1)}>
-                Prec.
-              </button>
-              <button
-                className={planningFilters.viewMode === 'month' ? 'btn-primary py-2 px-3' : 'btn-secondary py-2 px-3'}
-                type="button"
-                onClick={() => setPlanningFilters({ ...planningFilters, viewMode: 'month' })}
-              >
-                Mois
-              </button>
-              <button
-                className={planningFilters.viewMode === 'week' ? 'btn-primary py-2 px-3' : 'btn-secondary py-2 px-3'}
-                type="button"
-                onClick={() => setPlanningFilters({ ...planningFilters, viewMode: 'week' })}
-              >
-                Semaine
-              </button>
-              <button className="btn-secondary py-2 px-3" type="button" onClick={() => movePlanningWindow(1)}>
-                Suiv.
-              </button>
-              <button className="btn-secondary py-2 px-3" type="button" onClick={resetPlanningWindow}>
-                Aujourd'hui
-              </button>
-              <span className="badge-blue">{schedule.length} shift(s)</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-            <select className="input" value={planningFilters.teamId} onChange={(e) => setPlanningFilters({ ...planningFilters, teamId: e.target.value })}>
-              <option value="">Toutes les equipes</option>
-              {(configuration?.teams || []).map((team) => <option key={team.id} value={team.id}>{team.code} - {team.name}</option>)}
-            </select>
-            <select className="input" value={planningFilters.employeeId} onChange={(e) => setPlanningFilters({ ...planningFilters, employeeId: e.target.value })}>
-              <option value="">Tous les employes</option>
-              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.matricule} - {employee.lastName}</option>)}
-            </select>
-            <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-500">
-              {planningWindowLabel(dateFrom, dateTo, planningFilters.viewMode)}
-            </div>
-          </div>
-          <div className="grid grid-cols-7 gap-1 mt-4 text-center text-[11px] font-bold uppercase text-gray-400">
-            {scheduleCalendarCells.map((cell) => <div key={`planning-head-${cell.key}`}>{cell.weekdayLabel}</div>)}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-7 gap-2 mt-2">
-            {scheduleCalendarCells.map((cell) => (
-              <ScheduleCalendarCell
-                key={cell.key}
-                cell={cell}
-                draggedScheduleId={draggedScheduleId}
-                onDragStart={setDraggedScheduleId}
-                onDrop={(workDate) => {
-                  const item = schedule.find((row) => Number(row.id) === Number(draggedScheduleId));
-                  moveScheduleToDate(item, workDate);
-                }}
-                onEdit={editSchedule}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="card space-y-3">
-          <PanelTitle title="Edition planning" subtitle={selectedSchedule ? `${selectedSchedule.matricule} - ${selectedSchedule.lastName}` : 'Selectionner une carte'} />
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <div className="text-[11px] font-bold uppercase text-gray-400">Charge equipes</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {planningTeamSummary.slice(0, 6).map((item) => (
-                <span key={item.key} className="rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600">
-                  {item.label}: {item.count}
-                </span>
-              ))}
-              {!planningTeamSummary.length && <span className="text-xs text-gray-400">Aucune equipe visible sur la periode.</span>}
-            </div>
-          </div>
-          <select className="input" value={scheduleEdit.scheduleId} onChange={(e) => {
-            const item = schedule.find((row) => Number(row.id) === Number(e.target.value));
-            if (item) editSchedule(item);
-            else setScheduleEdit({ ...scheduleEdit, scheduleId: '' });
-          }}>
-            <option value="">Ligne de planning</option>
-            {schedule.slice(0, 500).map((item) => (
-              <option key={item.id} value={item.id}>
-                {new Date(item.workDate).toLocaleDateString('fr-FR')} - {item.matricule} - {item.lastName}
-              </option>
-            ))}
-          </select>
-          <div className="grid grid-cols-2 gap-3">
-            <select className="input" value={scheduleEdit.status} onChange={(e) => setScheduleEdit({ ...scheduleEdit, status: e.target.value })}>
-              <option value="planned">Planifie</option>
-              <option value="rest">Repos</option>
-              <option value="leave">Conge</option>
-              <option value="training">Formation</option>
-              <option value="suspended">Suspendu</option>
-            </select>
-            <select className="input" value={scheduleEdit.profileId} onChange={(e) => setScheduleEdit({ ...scheduleEdit, profileId: e.target.value })} disabled={scheduleEdit.status === 'rest'}>
-              <option value="">Profil actuel</option>
-              {(configuration?.profiles || []).map((profile) => <option key={profile.id} value={profile.id}>{profile.code} - {profile.name}</option>)}
-            </select>
-            <input className="input" type="time" value={scheduleEdit.plannedStart} onChange={(e) => setScheduleEdit({ ...scheduleEdit, plannedStart: e.target.value })} disabled={scheduleEdit.status === 'rest'} />
-            <input className="input" type="time" value={scheduleEdit.plannedEnd} onChange={(e) => setScheduleEdit({ ...scheduleEdit, plannedEnd: e.target.value })} disabled={scheduleEdit.status === 'rest'} />
-          </div>
-          <input className="input" value={scheduleEdit.shiftLabel} onChange={(e) => setScheduleEdit({ ...scheduleEdit, shiftLabel: e.target.value })} placeholder="Libelle shift" />
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input type="checkbox" checked={scheduleEdit.recalculate} onChange={(e) => setScheduleEdit({ ...scheduleEdit, recalculate: e.target.checked })} />
-            Recalculer la journee
-          </label>
-          <button className="btn-primary w-full justify-center" type="button" onClick={saveScheduleEdit}>Enregistrer modification</button>
-          {selectedSchedule && (
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
-              {new Date(selectedSchedule.workDate).toLocaleDateString('fr-FR')} - {selectedSchedule.profileName || selectedSchedule.shiftLabel || selectedSchedule.status}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="card xl:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <PanelTitle title="Alertes automatiques" subtitle="Retards, absences, oublis de pointage et departs anticipes" />
-            <div className="flex flex-wrap gap-2">
-              <button className="btn-secondary flex items-center gap-2" type="button" onClick={detectAlerts}>
-                <ArrowPathIcon className="w-4 h-4" /> Detecter alertes
-              </button>
-              <button className="btn-primary flex items-center gap-2" type="button" onClick={detectAlertsAsync}>
-                <ArrowPathIcon className="w-4 h-4" /> Job alertes
-              </button>
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {alerts.slice(0, 8).map((item) => (
-              <div key={item.id} className="rounded-lg border border-gray-100 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={alertBadge(item.alertType)}>{alertLabel(item.alertType)}</span>
-                      <span className={severityBadge(item.severity)}>{item.severity}</span>
-                    </div>
-                    <div className="mt-2 font-bold text-gray-900">{item.title}</div>
-                    <div className="mt-1 text-xs text-gray-500">{new Date(item.alertDate).toLocaleDateString('fr-FR')} - {item.matricule} - {item.lastName} {item.firstName}</div>
-                    <p className="mt-2 text-sm text-gray-600">{item.message}</p>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <button className="btn-secondary py-1 px-2 text-xs" type="button" onClick={() => updateAlert(item, 'acknowledged')}>Vu</button>
-                    <button className="btn-primary py-1 px-2 text-xs" type="button" onClick={() => updateAlert(item, 'resolved')}>Resoudre</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {!alerts.length && <p className="text-sm text-gray-400">Aucune alerte ouverte sur cette periode.</p>}
-          </div>
-        </div>
-
-        <div className="card space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <PanelTitle title="Notifications" subtitle="Outbox interne, email, SMS et WhatsApp" />
-            <BellIcon className="w-5 h-5 text-indigo-500" />
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <OutboxStat label="A envoyer" value={(outboxSummary.queued || 0) + (outboxSummary.retry || 0)} tone="blue" />
-            <OutboxStat label="Provider" value={outboxSummary.pending_provider || 0} tone="amber" />
-            <OutboxStat label="Envoyees" value={outboxSummary.sent || 0} tone="green" />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input
-              type="checkbox"
-              checked={notificationForm.simulateProviders}
-              onChange={(event) => setNotificationForm({ ...notificationForm, simulateProviders: event.target.checked })}
-            />
-            Simuler SMS et WhatsApp
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button className="btn-secondary w-full justify-center flex items-center gap-2" type="button" onClick={dispatchNotifications}>
-              <ArrowPathIcon className="w-4 h-4" /> Dispatcher
-            </button>
-            <button className="btn-primary w-full justify-center flex items-center gap-2" type="button" onClick={dispatchNotificationsAsync}>
-              <ArrowPathIcon className="w-4 h-4" /> Job dispatch
-            </button>
-          </div>
-          <div className="max-h-80 overflow-auto space-y-2">
-            {outbox.slice(0, 10).map((item) => (
-              <div key={item.id} className="rounded-lg border border-gray-100 p-3 text-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className={channelBadge(item.channel)}>{notificationChannelLabel(item.channel)}</span>
-                  <span className={notificationStatusBadge(item.status)}>{notificationStatusLabel(item.status)}</span>
-                </div>
-                <div className="mt-2 font-bold text-gray-900">{item.subject || alertLabel(item.alertType)}</div>
-                <div className="mt-1 text-xs text-gray-500">{item.recipient || 'Destinataire interne'}</div>
-                <div className="mt-1 text-xs text-gray-500">
-                  {item.matricule ? `${item.matricule} - ${item.lastName} ${item.firstName}` : 'Alerte systeme'}
-                </div>
-                {item.lastError && <p className="mt-2 text-xs text-red-500">{item.lastError}</p>}
-                {item.status !== 'sent' && (
-                  <button className="btn-secondary mt-3 py-1 px-2 text-xs" type="button" onClick={() => retryNotification(item)}>
-                    Remettre en file
-                  </button>
-                )}
-              </div>
-            ))}
-            {!outbox.length && <p className="text-sm text-gray-400">Aucune notification en file.</p>}
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="flex items-center justify-between gap-3">
-          <PanelTitle title="Jobs temps" subtitle="Calcul, alertes et notifications en tache de fond" />
-          <button className="btn-secondary flex items-center gap-2" type="button" onClick={load}>
-            <ArrowPathIcon className="w-4 h-4" /> Actualiser jobs
+      <div className="flex flex-wrap gap-2 rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+          >
+            {tab.label}
           </button>
-        </div>
-        <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {jobs.slice(0, 8).map((item) => (
-            <div key={item.id} className="rounded-lg border border-gray-100 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="badge-blue">{jobTypeLabel(item.jobType)}</span>
-                    <span className={jobStatusBadge(item.status)}>{item.status}</span>
+        ))}
+      </div>
+
+      {activeTab === 'overview' && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+            <Kpi icon={UsersIcon} label="Effectif actif" value={dashboard?.activeEmployees || 0} tone="indigo" />
+            <Kpi icon={CheckIcon} label="Presents" value={dashboard?.present || 0} tone="emerald" />
+            <Kpi icon={CalendarDaysIcon} label="Absents" value={dashboard?.absent || 0} tone="red" />
+            <Kpi icon={ClockIcon} label="Retards" value={dashboard?.late || 0} tone="amber" />
+            <Kpi icon={ChartBarIcon} label="Alertes" value={openAlerts} tone="red" />
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
+            <div className="card space-y-4">
+              <PanelTitle title="Actions rapides" subtitle="Accédez directement aux tâches les plus courantes" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.id}
+                      type="button"
+                      onClick={() => setActiveTab(action.id)}
+                      className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-left transition hover:border-indigo-200 hover:bg-indigo-50"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-indigo-600">
+                          <Icon className="h-4 w-4" />
+                          <span className="font-semibold text-gray-900">{action.title}</span>
+                        </div>
+                        <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-600 shadow-sm">
+                          {action.badge}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-600">{action.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="card space-y-3">
+              <PanelTitle title="Calcul et paie" subtitle="Période active" />
+              <div className="grid grid-cols-2 gap-3">
+                <input className="input" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                <input className="input" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button className="btn-secondary w-full justify-center flex items-center gap-2" type="button" onClick={calculate}>
+                  <SparklesIcon className="h-4 w-4" /> Calculer
+                </button>
+                <button className="btn-primary w-full justify-center flex items-center gap-2" type="button" onClick={calculateAsync}>
+                  <ArrowPathIcon className="h-4 w-4" /> Job calcul
+                </button>
+              </div>
+              <button className="btn-primary w-full justify-center flex items-center gap-2" type="button" onClick={exportPayroll}>
+                <DocumentArrowDownIcon className="h-4 w-4" /> Exporter vers paie
+              </button>
+              <p className="text-xs text-gray-500">{approvedCount} journée(s) approuvée(s) exportables.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="card xl:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <PanelTitle title="Tendance presence" subtitle={`${analytics?.dateFrom || dateFrom} - ${analytics?.dateTo || dateTo}`} />
+                <ChartBarIcon className="w-5 h-5 text-indigo-500" />
+              </div>
+              {loading || !analytics?.trend?.length ? (
+                <EmptyChart loading={loading} />
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={analytics.trend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
+                    <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip labelFormatter={longDate} />
+                    <Line type="monotone" dataKey="present" name="Presents" stroke="#10b981" strokeWidth={2.5} dot={false} />
+                    <Line type="monotone" dataKey="absent" name="Absents" stroke="#ef4444" strokeWidth={2.5} dot={false} />
+                    <Line type="monotone" dataKey="late" name="Retards" stroke="#f59e0b" strokeWidth={2.5} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            <div className="card">
+              <PanelTitle title="Statuts" subtitle="Repartition periode" />
+              {loading || !statusData.length ? (
+                <EmptyChart loading={loading} />
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie data={statusData} cx="50%" cy="48%" outerRadius={88} innerRadius={48} dataKey="count" paddingAngle={3}>
+                      {statusData.map((item) => <Cell key={item.status} fill={item.color} />)}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="card xl:col-span-2">
+              <PanelTitle title="Presence par departement" subtitle="Presents, absents, retards" />
+              {loading || !analytics?.byDepartment?.length ? (
+                <EmptyChart loading={loading} />
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={analytics.byDepartment}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
+                    <XAxis dataKey="department" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="present" name="Presents" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="absent" name="Absents" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="late" name="Retards" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            <div className="card">
+              <PanelTitle title="Calendrier" subtitle={calendarTitle(dateFrom)} />
+              <div className="grid grid-cols-7 gap-1 mt-4 text-center text-[11px] font-bold uppercase text-gray-400">
+                {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, index) => <div key={`${day}-${index}`}>{day}</div>)}
+              </div>
+              <div className="grid grid-cols-7 gap-1 mt-2">
+                {calendarCells.map((cell) => <CalendarCell key={cell.key} cell={cell} />)}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'planning' && (
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <form onSubmit={createRotation} className="card space-y-3">
+              <PanelTitle title="Rotation" subtitle="Cycle travail/repos" />
+              <div className="grid grid-cols-2 gap-3">
+                <input className="input" value={rotationForm.code} onChange={(e) => setRotationForm({ ...rotationForm, code: e.target.value })} placeholder="Code" />
+                <input className="input" value={rotationForm.name} onChange={(e) => setRotationForm({ ...rotationForm, name: e.target.value })} placeholder="Nom" />
+                <input className="input" type="number" min="1" value={rotationForm.workDays} onChange={(e) => setRotationForm({ ...rotationForm, workDays: e.target.value })} />
+                <input className="input" type="number" min="0" value={rotationForm.restDays} onChange={(e) => setRotationForm({ ...rotationForm, restDays: e.target.value })} />
+                <select className="input" value={rotationForm.rotationType} onChange={(e) => setRotationForm({ ...rotationForm, rotationType: e.target.value })}>
+                  <option value="work_rest">Travail / repos</option>
+                  <option value="day_night">Jour / nuit</option>
+                </select>
+                <input className="input" type="date" value={rotationForm.cycleStartDate} onChange={(e) => setRotationForm({ ...rotationForm, cycleStartDate: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <select className="input" value={rotationForm.dayProfileId} onChange={(e) => setRotationForm({ ...rotationForm, dayProfileId: e.target.value })}>
+                  <option value="">Profil jour</option>
+                  {(configuration?.profiles || []).map((profile) => <option key={profile.id} value={profile.id}>{profile.code} - {profile.name}</option>)}
+                </select>
+                <select className="input" value={rotationForm.nightProfileId} onChange={(e) => setRotationForm({ ...rotationForm, nightProfileId: e.target.value })}>
+                  <option value="">Profil nuit</option>
+                  {(configuration?.profiles || []).map((profile) => <option key={profile.id} value={profile.id}>{profile.code} - {profile.name}</option>)}
+                </select>
+              </div>
+              <button className="btn-primary w-full justify-center flex items-center gap-2" type="submit">
+                <CalendarDaysIcon className="h-4 w-4" /> Enregistrer rotation
+              </button>
+            </form>
+
+            <div className="card space-y-3">
+              <PanelTitle title="Generer planning" subtitle="Applique rotation ou profil fixe" />
+              <div className="grid grid-cols-2 gap-3">
+                <select className="input" value={scheduleForm.rotationPatternId} onChange={(e) => setScheduleForm({ ...scheduleForm, rotationPatternId: e.target.value, profileId: '' })}>
+                  <option value="">Rotation</option>
+                  {(configuration?.rotations || []).map((rotation) => <option key={rotation.id} value={rotation.id}>{rotation.code} - {rotation.name}</option>)}
+                </select>
+                <select className="input" value={scheduleForm.profileId} onChange={(e) => setScheduleForm({ ...scheduleForm, profileId: e.target.value, rotationPatternId: '' })}>
+                  <option value="">Profil fixe</option>
+                  {(configuration?.profiles || []).map((profile) => <option key={profile.id} value={profile.id}>{profile.code} - {profile.name}</option>)}
+                </select>
+                <select className="input" value={scheduleForm.employeeId} onChange={(e) => setScheduleForm({ ...scheduleForm, employeeId: e.target.value })}>
+                  <option value="">Tous les employes</option>
+                  {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.matricule} - {employee.lastName}</option>)}
+                </select>
+                <input className="input" value={scheduleForm.department} onChange={(e) => setScheduleForm({ ...scheduleForm, department: e.target.value })} placeholder="Departement" />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" checked={scheduleForm.overwrite} onChange={(e) => setScheduleForm({ ...scheduleForm, overwrite: e.target.checked })} />
+                Remplacer les lignes existantes
+              </label>
+              <button className="btn-secondary w-full justify-center flex items-center gap-2" type="button" onClick={generateSchedule}>
+                <SparklesIcon className="h-4 w-4" /> Générer planning
+              </button>
+            </div>
+
+            <div className="card">
+              <div className="flex items-center justify-between">
+                <PanelTitle title="Planning genere" subtitle={`${schedule.length} ligne(s) sur la periode`} />
+                <CalendarDaysIcon className="w-5 h-5 text-indigo-500" />
+              </div>
+              <div className="mt-4 max-h-64 overflow-auto space-y-2">
+                {schedule.slice(0, 12).map((item) => (
+                  <div key={item.id} className="rounded-lg border border-gray-100 p-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-gray-900">{new Date(item.workDate).toLocaleDateString('fr-FR')}</span>
+                      <span className={item.status === 'rest' ? 'badge-gray' : 'badge-blue'}>{item.status}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">{item.matricule} - {item.lastName} {item.firstName}</div>
+                    <div className="mt-1 text-xs text-gray-500">{item.profileName || item.shiftLabel || 'Repos'} {item.plannedStart ? `(${item.plannedStart} - ${item.plannedEnd})` : ''}</div>
                   </div>
-                  <div className="mt-2 font-bold text-gray-900">Job #{item.id}</div>
-                  <div className="mt-1 text-xs text-gray-500">{item.processedCount}/{item.totalCount} traite(s) - {item.progress}%</div>
-                  {item.failedCount > 0 && <div className="mt-1 text-xs text-red-500">{item.failedCount} echec(s)</div>}
-                </div>
-                {['queued', 'running'].includes(item.status) && (
-                  <button className="btn-secondary py-1 px-2 text-xs" type="button" onClick={() => cancelJob(item)}>
-                    Annuler
+                ))}
+                {!schedule.length && <p className="text-sm text-gray-400">Aucun planning genere sur cette periode.</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="card xl:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <PanelTitle title="Calendrier planning" subtitle="Deplacer une carte, filtrer par equipe ou passer en vue semaine" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <button className="btn-secondary py-2 px-3" type="button" onClick={() => movePlanningWindow(-1)}>
+                    Prec.
                   </button>
-                )}
+                  <button
+                    className={planningFilters.viewMode === 'month' ? 'btn-primary py-2 px-3' : 'btn-secondary py-2 px-3'}
+                    type="button"
+                    onClick={() => setPlanningFilters({ ...planningFilters, viewMode: 'month' })}
+                  >
+                    Mois
+                  </button>
+                  <button
+                    className={planningFilters.viewMode === 'week' ? 'btn-primary py-2 px-3' : 'btn-secondary py-2 px-3'}
+                    type="button"
+                    onClick={() => setPlanningFilters({ ...planningFilters, viewMode: 'week' })}
+                  >
+                    Semaine
+                  </button>
+                  <button className="btn-secondary py-2 px-3" type="button" onClick={() => movePlanningWindow(1)}>
+                    Suiv.
+                  </button>
+                  <button className="btn-secondary py-2 px-3" type="button" onClick={resetPlanningWindow}>
+                    Aujourd'hui
+                  </button>
+                  <span className="badge-blue">{schedule.length} shift(s)</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                <select className="input" value={planningFilters.teamId} onChange={(e) => setPlanningFilters({ ...planningFilters, teamId: e.target.value })}>
+                  <option value="">Toutes les equipes</option>
+                  {(configuration?.teams || []).map((team) => <option key={team.id} value={team.id}>{team.code} - {team.name}</option>)}
+                </select>
+                <select className="input" value={planningFilters.employeeId} onChange={(e) => setPlanningFilters({ ...planningFilters, employeeId: e.target.value })}>
+                  <option value="">Tous les employes</option>
+                  {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.matricule} - {employee.lastName}</option>)}
+                </select>
+                <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+                  {planningWindowLabel(dateFrom, dateTo, planningFilters.viewMode)}
+                </div>
+              </div>
+              <div className="grid grid-cols-7 gap-1 mt-4 text-center text-[11px] font-bold uppercase text-gray-400">
+                {scheduleCalendarCells.map((cell) => <div key={`planning-head-${cell.key}`}>{cell.weekdayLabel}</div>)}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-7 gap-2 mt-2">
+                {scheduleCalendarCells.map((cell) => (
+                  <ScheduleCalendarCell
+                    key={cell.key}
+                    cell={cell}
+                    draggedScheduleId={draggedScheduleId}
+                    onDragStart={setDraggedScheduleId}
+                    onDrop={(workDate) => {
+                      const item = schedule.find((row) => Number(row.id) === Number(draggedScheduleId));
+                      moveScheduleToDate(item, workDate);
+                    }}
+                    onEdit={editSchedule}
+                  />
+                ))}
               </div>
             </div>
-          ))}
-          {!jobs.length && <p className="text-sm text-gray-400">Aucun job temps lance pour cette entreprise.</p>}
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="card xl:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <PanelTitle title="Tendance presence" subtitle={`${analytics?.dateFrom || dateFrom} - ${analytics?.dateTo || dateTo}`} />
-            <ChartBarIcon className="w-5 h-5 text-indigo-500" />
-          </div>
-          {loading || !analytics?.trend?.length ? (
-            <EmptyChart loading={loading} />
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={analytics.trend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
-                <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip labelFormatter={longDate} />
-                <Line type="monotone" dataKey="present" name="Presents" stroke="#10b981" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="absent" name="Absents" stroke="#ef4444" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="late" name="Retards" stroke="#f59e0b" strokeWidth={2.5} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        <div className="card">
-          <PanelTitle title="Statuts" subtitle="Repartition periode" />
-          {loading || !statusData.length ? (
-            <EmptyChart loading={loading} />
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={statusData} cx="50%" cy="48%" outerRadius={88} innerRadius={48} dataKey="count" paddingAngle={3}>
-                  {statusData.map((item) => <Cell key={item.status} fill={item.color} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="card xl:col-span-2">
-          <PanelTitle title="Presence par departement" subtitle="Presents, absents, retards" />
-          {loading || !analytics?.byDepartment?.length ? (
-            <EmptyChart loading={loading} />
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={analytics.byDepartment}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
-                <XAxis dataKey="department" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="present" name="Presents" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="absent" name="Absents" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="late" name="Retards" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        <div className="card">
-          <PanelTitle title="Calendrier" subtitle={calendarTitle(dateFrom)} />
-          <div className="grid grid-cols-7 gap-1 mt-4 text-center text-[11px] font-bold uppercase text-gray-400">
-            {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, index) => <div key={`${day}-${index}`}>{day}</div>)}
-          </div>
-          <div className="grid grid-cols-7 gap-1 mt-2">
-            {calendarCells.map((cell) => <CalendarCell key={cell.key} cell={cell} />)}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="card">
-          <h2 className="font-bold text-gray-900 mb-3">Profils actifs</h2>
-          <div className="space-y-2">
-            {(configuration?.profiles || []).slice(0, 6).map((profile) => (
-              <div key={profile.id} className="rounded-lg border border-gray-200 p-3">
-                <div className="font-bold text-gray-900">{profile.name}</div>
-                <div className="text-xs text-gray-500">{profile.code} - {profile.profileType} - {profile.weeklyHours}h/semaine</div>
-              </div>
-            ))}
-            {!configuration?.profiles?.length && <p className="text-sm text-gray-400">Aucun profil configure.</p>}
-          </div>
-        </div>
-
-        <div className="card lg:col-span-2">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-900">Journees calculees</h2>
-            <span className="badge-gray">{days.length} ligne(s)</span>
-          </div>
-          {loading ? (
-            <p className="text-sm text-gray-400">Chargement...</p>
-          ) : days.length === 0 ? (
-            <p className="text-sm text-gray-400">Aucune journee calculee sur cette periode.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[860px]">
-                <thead><tr>{['Date', 'Employe', 'Presence', 'Travaille', 'HS', 'Retard', 'Workflow', 'Action'].map((header) => <th key={header} className="th">{header}</th>)}</tr></thead>
-                <tbody className="divide-y divide-gray-50">
-                  {days.slice(0, 80).map((item) => (
-                    <tr key={item.id} className="tr-hover">
-                      <td className="td">{new Date(item.workDate).toLocaleDateString('fr-FR')}</td>
-                      <td className="td">{item.matricule} - {item.lastName} {item.firstName}</td>
-                      <td className="td"><PresenceBadge status={item.presenceStatus} /></td>
-                      <td className="td">{minutes(item.workedMinutes)}</td>
-                      <td className="td">{minutes(item.overtimeMinutes)}</td>
-                      <td className="td">{item.lateMinutes || 0} min</td>
-                      <td className="td"><span className="badge-blue">{item.workflowStatus}</span></td>
-                      <td className="td">
-                        {item.workflowStatus !== 'hr_approved' && <button className="btn-secondary py-1 px-2 text-xs" onClick={() => approve(item)}>Approuver</button>}
-                      </td>
-                    </tr>
+            <div className="card space-y-3">
+              <PanelTitle title="Edition planning" subtitle={selectedSchedule ? `${selectedSchedule.matricule} - ${selectedSchedule.lastName}` : 'Selectionner une carte'} />
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <div className="text-[11px] font-bold uppercase text-gray-400">Charge equipes</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {planningTeamSummary.slice(0, 6).map((item) => (
+                    <span key={item.key} className="rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600">
+                      {item.label}: {item.count}
+                    </span>
                   ))}
-                </tbody>
-              </table>
+                  {!planningTeamSummary.length && <span className="text-xs text-gray-400">Aucune equipe visible sur la periode.</span>}
+                </div>
+              </div>
+              <select className="input" value={scheduleEdit.scheduleId} onChange={(e) => {
+                const item = schedule.find((row) => Number(row.id) === Number(e.target.value));
+                if (item) editSchedule(item);
+                else setScheduleEdit({ ...scheduleEdit, scheduleId: '' });
+              }}>
+                <option value="">Ligne de planning</option>
+                {schedule.slice(0, 500).map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {new Date(item.workDate).toLocaleDateString('fr-FR')} - {item.matricule} - {item.lastName}
+                  </option>
+                ))}
+              </select>
+              <div className="grid grid-cols-2 gap-3">
+                <select className="input" value={scheduleEdit.status} onChange={(e) => setScheduleEdit({ ...scheduleEdit, status: e.target.value })}>
+                  <option value="planned">Planifie</option>
+                  <option value="rest">Repos</option>
+                  <option value="leave">Conge</option>
+                  <option value="training">Formation</option>
+                  <option value="suspended">Suspendu</option>
+                </select>
+                <select className="input" value={scheduleEdit.profileId} onChange={(e) => setScheduleEdit({ ...scheduleEdit, profileId: e.target.value })} disabled={scheduleEdit.status === 'rest'}>
+                  <option value="">Profil actuel</option>
+                  {(configuration?.profiles || []).map((profile) => <option key={profile.id} value={profile.id}>{profile.code} - {profile.name}</option>)}
+                </select>
+                <input className="input" type="time" value={scheduleEdit.plannedStart} onChange={(e) => setScheduleEdit({ ...scheduleEdit, plannedStart: e.target.value })} disabled={scheduleEdit.status === 'rest'} />
+                <input className="input" type="time" value={scheduleEdit.plannedEnd} onChange={(e) => setScheduleEdit({ ...scheduleEdit, plannedEnd: e.target.value })} disabled={scheduleEdit.status === 'rest'} />
+              </div>
+              <input className="input" value={scheduleEdit.shiftLabel} onChange={(e) => setScheduleEdit({ ...scheduleEdit, shiftLabel: e.target.value })} placeholder="Libelle shift" />
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" checked={scheduleEdit.recalculate} onChange={(e) => setScheduleEdit({ ...scheduleEdit, recalculate: e.target.checked })} />
+                Recalculer la journee
+              </label>
+              <button className="btn-primary w-full justify-center flex items-center gap-2" type="button" onClick={saveScheduleEdit}>
+                <CheckIcon className="h-4 w-4" /> Enregistrer modification
+              </button>
+              {selectedSchedule && (
+                <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
+                  {new Date(selectedSchedule.workDate).toLocaleDateString('fr-FR')} - {selectedSchedule.profileName || selectedSchedule.shiftLabel || selectedSchedule.status}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'monitoring' && (
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="card xl:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <PanelTitle title="Alertes automatiques" subtitle="Retards, absences, oublis de pointage et departs anticipes" />
+                <div className="flex flex-wrap gap-2">
+                  <button className="btn-secondary flex items-center gap-2" type="button" onClick={detectAlerts}>
+                    <ArrowPathIcon className="w-4 h-4" /> Detecter alertes
+                  </button>
+                  <button className="btn-primary flex items-center gap-2" type="button" onClick={detectAlertsAsync}>
+                    <ArrowPathIcon className="w-4 h-4" /> Job alertes
+                  </button>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {alerts.slice(0, 8).map((item) => (
+                  <div key={item.id} className="rounded-lg border border-gray-100 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={alertBadge(item.alertType)}>{alertLabel(item.alertType)}</span>
+                          <span className={severityBadge(item.severity)}>{item.severity}</span>
+                        </div>
+                        <div className="mt-2 font-bold text-gray-900">{item.title}</div>
+                        <div className="mt-1 text-xs text-gray-500">{new Date(item.alertDate).toLocaleDateString('fr-FR')} - {item.matricule} - {item.lastName} {item.firstName}</div>
+                        <p className="mt-2 text-sm text-gray-600">{item.message}</p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button className="btn-secondary py-1 px-2 text-xs" type="button" onClick={() => updateAlert(item, 'acknowledged')}>Vu</button>
+                        <button className="btn-primary py-1 px-2 text-xs" type="button" onClick={() => updateAlert(item, 'resolved')}>Resoudre</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {!alerts.length && <p className="text-sm text-gray-400">Aucune alerte ouverte sur cette periode.</p>}
+              </div>
+            </div>
+
+            <div className="card space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <PanelTitle title="Notifications" subtitle="Outbox interne, email, SMS et WhatsApp" />
+                <BellIcon className="w-5 h-5 text-indigo-500" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <OutboxStat label="A envoyer" value={(outboxSummary.queued || 0) + (outboxSummary.retry || 0)} tone="blue" />
+                <OutboxStat label="Provider" value={outboxSummary.pending_provider || 0} tone="amber" />
+                <OutboxStat label="Envoyees" value={outboxSummary.sent || 0} tone="green" />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={notificationForm.simulateProviders}
+                  onChange={(event) => setNotificationForm({ ...notificationForm, simulateProviders: event.target.checked })}
+                />
+                Simuler SMS et WhatsApp
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button className="btn-secondary w-full justify-center flex items-center gap-2" type="button" onClick={dispatchNotifications}>
+                  <ArrowPathIcon className="w-4 h-4" /> Dispatcher
+                </button>
+                <button className="btn-primary w-full justify-center flex items-center gap-2" type="button" onClick={dispatchNotificationsAsync}>
+                  <ArrowPathIcon className="w-4 h-4" /> Job dispatch
+                </button>
+              </div>
+              <div className="max-h-80 overflow-auto space-y-2">
+                {outbox.slice(0, 10).map((item) => (
+                  <div key={item.id} className="rounded-lg border border-gray-100 p-3 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className={channelBadge(item.channel)}>{notificationChannelLabel(item.channel)}</span>
+                      <span className={notificationStatusBadge(item.status)}>{notificationStatusLabel(item.status)}</span>
+                    </div>
+                    <div className="mt-2 font-bold text-gray-900">{item.subject || alertLabel(item.alertType)}</div>
+                    <div className="mt-1 text-xs text-gray-500">{item.recipient || 'Destinataire interne'}</div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      {item.matricule ? `${item.matricule} - ${item.lastName} ${item.firstName}` : 'Alerte systeme'}
+                    </div>
+                    {item.lastError && <p className="mt-2 text-xs text-red-500">{item.lastError}</p>}
+                    {item.status !== 'sent' && (
+                      <button className="btn-secondary mt-3 py-1 px-2 text-xs" type="button" onClick={() => retryNotification(item)}>
+                        Remettre en file
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {!outbox.length && <p className="text-sm text-gray-400">Aucune notification en file.</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="flex items-center justify-between gap-3">
+              <PanelTitle title="Jobs temps" subtitle="Calcul, alertes et notifications en tache de fond" />
+              <button className="btn-secondary flex items-center gap-2" type="button" onClick={load}>
+                <ArrowPathIcon className="w-4 h-4" /> Actualiser jobs
+              </button>
+            </div>
+            <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {jobs.slice(0, 8).map((item) => (
+                <div key={item.id} className="rounded-lg border border-gray-100 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="badge-blue">{jobTypeLabel(item.jobType)}</span>
+                        <span className={jobStatusBadge(item.status)}>{item.status}</span>
+                      </div>
+                      <div className="mt-2 font-bold text-gray-900">Job #{item.id}</div>
+                      <div className="mt-1 text-xs text-gray-500">{item.processedCount}/{item.totalCount} traite(s) - {item.progress}%</div>
+                      {item.failedCount > 0 && <div className="mt-1 text-xs text-red-500">{item.failedCount} echec(s)</div>}
+                    </div>
+                    {['queued', 'running'].includes(item.status) && (
+                      <button className="btn-secondary py-1 px-2 text-xs" type="button" onClick={() => cancelJob(item)}>
+                        Annuler
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {!jobs.length && <p className="text-sm text-gray-400">Aucun job temps lance pour cette entreprise.</p>}
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'days' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="card">
+            <h2 className="font-bold text-gray-900 mb-3">Profils actifs</h2>
+            <div className="space-y-2">
+              {(configuration?.profiles || []).slice(0, 6).map((profile) => (
+                <div key={profile.id} className="rounded-lg border border-gray-200 p-3">
+                  <div className="font-bold text-gray-900">{profile.name}</div>
+                  <div className="text-xs text-gray-500">{profile.code} - {profile.profileType} - {profile.weeklyHours}h/semaine</div>
+                </div>
+              ))}
+              {!configuration?.profiles?.length && <p className="text-sm text-gray-400">Aucun profil configure.</p>}
+            </div>
+          </div>
+
+          <div className="card lg:col-span-2">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold text-gray-900">Journees calculees</h2>
+              <span className="badge-gray">{days.length} ligne(s)</span>
+            </div>
+            {loading ? (
+              <p className="text-sm text-gray-400">Chargement...</p>
+            ) : days.length === 0 ? (
+              <p className="text-sm text-gray-400">Aucune journee calculee sur cette periode.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[860px]">
+                  <thead><tr>{['Date', 'Employe', 'Presence', 'Travaille', 'HS', 'Retard', 'Workflow', 'Action'].map((header) => <th key={header} className="th">{header}</th>)}</tr></thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {days.slice(0, 80).map((item) => (
+                      <tr key={item.id} className="tr-hover">
+                        <td className="td">{new Date(item.workDate).toLocaleDateString('fr-FR')}</td>
+                        <td className="td">{item.matricule} - {item.lastName} {item.firstName}</td>
+                        <td className="td"><PresenceBadge status={item.presenceStatus} /></td>
+                        <td className="td">{minutes(item.workedMinutes)}</td>
+                        <td className="td">{minutes(item.overtimeMinutes)}</td>
+                        <td className="td">{item.lateMinutes || 0} min</td>
+                        <td className="td"><span className="badge-blue">{item.workflowStatus}</span></td>
+                        <td className="td">
+                          {item.workflowStatus !== 'hr_approved' && <button className="btn-secondary py-1 px-2 text-xs flex items-center gap-1" onClick={() => approve(item)}><CheckIcon className="h-3 w-3" /> Approuver</button>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

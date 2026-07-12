@@ -8,8 +8,8 @@ echo  ==========================================
 echo.
 
 REM Verifier si le projet existe
-if not exist "C:\Users\mjl\my folder\SMARTHR\SMARTHR-main\Backend" (
-    echo ERREUR: Le projet n'est pas trouve dans C:\Users\mjl\my folder\SMARTHR\SMARTHR-main
+if not exist "%~dp0Backend" (
+    echo ERREUR: Le dossier Backend est introuvable dans %~dp0
     pause
     exit /b 1
 )
@@ -20,13 +20,13 @@ timeout /t 3 /nobreak >nul
 echo.
 
 echo [2/3] Lancement du Backend (NestJS)...
-start "SmartHR Backend" cmd /k "cd /d C:\Users\mjl\my folder\SMARTHR\SMARTHR-main\Backend && color 0B && echo Backend demarre sur http://localhost:3000/api && echo Swagger: http://localhost:3000/api/docs && echo. && npm run start:dev"
+start "SmartHR Backend" cmd /k "cd /d "%~dp0Backend" && color 0B && echo Backend demarre sur http://localhost:3000/api && echo Swagger: http://localhost:3000/api/docs && echo. && npm run start:dev"
 echo Attente demarrage backend...
 timeout /t 8 /nobreak >nul
 echo.
 
 echo [3/3] Lancement du Frontend (React + Vite)...
-start "SmartHR Frontend" cmd /k "cd /d C:\Users\mjl\my folder\SMARTHR\SMARTHR-main\Frontend && color 0E && echo Frontend demarre sur http://localhost:5174 && echo. && npm run dev"
+start "SmartHR Frontend" cmd /k "cd /d "%~dp0Frontend" && color 0E && echo Frontend demarre sur http://localhost:5173 && echo. && npm run dev -- --host 0.0.0.0"
 echo.
 
 echo ==========================================
